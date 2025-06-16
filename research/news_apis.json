@@ -1,0 +1,1053 @@
+{
+  "apis": [
+    {
+      "name": "NewsAPI.org",
+      "base_url": "https://newsapi.org/v2",
+      "available_endpoints": [
+        "/top-headlines",
+        "/everything",
+        "/sources"
+      ],
+      "authentication_method": "API Key in header or query parameter",
+      "supported_categories": [
+        "business",
+        "entertainment",
+        "general",
+        "health",
+        "science",
+        "sports",
+        "technology"
+      ],
+      "query_parameters": {
+        "top-headlines": [
+          "country",
+          "category",
+          "sources",
+          "q",
+          "pageSize",
+          "page"
+        ],
+        "everything": [
+          "q",
+          "sources",
+          "domains",
+          "from",
+          "to",
+          "language",
+          "sortBy",
+          "pageSize",
+          "page"
+        ],
+        "sources": [
+          "category",
+          "language",
+          "country"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: Development use only, limited requests",
+      "registration_url": "https://newsapi.org/register",
+      "documentation_url": "https://newsapi.org/docs"
+    },
+    {
+      "name": "NewsData.io",
+      "base_url": "https://newsdata.io/api",
+      "available_endpoints": [
+        "/1/news"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "business",
+        "entertainment",
+        "environment",
+        "food",
+        "health",
+        "politics",
+        "science",
+        "sports",
+        "technology",
+        "top",
+        "world"
+      ],
+      "query_parameters": {
+        "news": [
+          "q",
+          "qInTitle",
+          "qInMeta",
+          "country",
+          "category",
+          "language",
+          "domain",
+          "domainurl",
+          "excludedomain",
+          "timezone",
+          "full_content",
+          "image",
+          "video"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available, specific limits on documentation",
+      "registration_url": "https://newsdata.io/register",
+      "documentation_url": "https://newsdata.io/documentation"
+    },
+    {
+      "name": "GNews API",
+      "base_url": "https://gnews.io/api/v4",
+      "available_endpoints": [
+        "/search",
+        "/top-headlines"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "general",
+        "world",
+        "nation",
+        "business",
+        "technology",
+        "entertainment",
+        "sports",
+        "science",
+        "health"
+      ],
+      "query_parameters": {
+        "search": [
+          "q",
+          "lang",
+          "country",
+          "max",
+          "in",
+          "nullable",
+          "from",
+          "to",
+          "sortby"
+        ],
+        "top-headlines": [
+          "category",
+          "lang",
+          "country",
+          "max",
+          "nullable"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available, check documentation for current limits",
+      "registration_url": "https://gnews.io/#pricing",
+      "documentation_url": "https://gnews.io/docs/v4"
+    },
+    {
+      "name": "NewsCatcher API",
+      "base_url": "https://api.newscatcherapi.com/v2",
+      "available_endpoints": [
+        "/search",
+        "/latest_headlines",
+        "/sources"
+      ],
+      "authentication_method": "API Key in header",
+      "supported_categories": [
+        "business",
+        "entertainment",
+        "general",
+        "health",
+        "science",
+        "sports",
+        "technology"
+      ],
+      "query_parameters": {
+        "search": [
+          "q",
+          "lang",
+          "countries",
+          "page_size",
+          "page",
+          "from",
+          "to",
+          "ranked_only",
+          "from_rank",
+          "to_rank",
+          "sort_by",
+          "page_size",
+          "page"
+        ],
+        "latest_headlines": [
+          "lang",
+          "countries",
+          "topic",
+          "sources",
+          "page_size",
+          "page"
+        ],
+        "sources": [
+          "lang",
+          "countries",
+          "topic"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 1,000 calls for personal email, 10,000 for work email",
+      "registration_url": "https://app.newscatcherapi.com/auth/register",
+      "documentation_url": "https://docs.newscatcherapi.com/"
+    },
+    {
+      "name": "Mediastack",
+      "base_url": "http://api.mediastack.com/v1",
+      "available_endpoints": [
+        "/news"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "general",
+        "business",
+        "entertainment",
+        "health",
+        "science",
+        "sports",
+        "technology"
+      ],
+      "query_parameters": {
+        "news": [
+          "access_key",
+          "sources",
+          "categories",
+          "countries",
+          "languages",
+          "keywords",
+          "date",
+          "sort",
+          "limit",
+          "offset"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 500 API requests per month",
+      "registration_url": "https://mediastack.com/product",
+      "documentation_url": "https://mediastack.com/documentation"
+    },
+    {
+      "name": "Bing News Search API",
+      "base_url": "https://api.bing.microsoft.com/v7.0",
+      "available_endpoints": [
+        "/news/search",
+        "/news",
+        "/news/trendingtopics"
+      ],
+      "authentication_method": "API Key in header",
+      "supported_categories": [
+        "Business",
+        "Entertainment",
+        "Health",
+        "Politics",
+        "ScienceAndTechnology",
+        "Sports",
+        "World"
+      ],
+      "query_parameters": {
+        "news/search": [
+          "q",
+          "cc",
+          "count",
+          "freshness",
+          "mkt",
+          "offset",
+          "originalImg",
+          "safeSearch",
+          "setLang",
+          "sortBy",
+          "textDecorations",
+          "textFormat"
+        ],
+        "news": [
+          "category",
+          "cc",
+          "count",
+          "mkt",
+          "offset",
+          "originalImg",
+          "safeSearch",
+          "setLang",
+          "sortBy",
+          "textDecorations",
+          "textFormat"
+        ],
+        "news/trendingtopics": [
+          "cc",
+          "count",
+          "mkt",
+          "offset",
+          "safeSearch",
+          "setLang",
+          "textDecorations",
+          "textFormat"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 1,000 transactions per month, 3 TPS",
+      "registration_url": "https://portal.azure.com/#create/microsoft.bingsearch",
+      "documentation_url": "https://learn.microsoft.com/en-us/bing/search-apis/bing-news-search/overview"
+    },
+    {
+      "name": "Currents API",
+      "base_url": "https://api.currentsapi.services/v1",
+      "available_endpoints": [
+        "/latest-news",
+        "/search"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "regional",
+        "technology",
+        "lifestyle",
+        "business",
+        "general",
+        "programming",
+        "science",
+        "entertainment",
+        "world",
+        "sports",
+        "finance",
+        "academia",
+        "politics",
+        "health",
+        "opinion"
+      ],
+      "query_parameters": {
+        "latest-news": [
+          "language",
+          "country",
+          "category"
+        ],
+        "search": [
+          "keywords",
+          "language",
+          "country",
+          "category",
+          "domain",
+          "start_date",
+          "end_date"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available for development and open-source projects",
+      "registration_url": "https://currentsapi.services/en/register",
+      "documentation_url": "https://currentsapi.services/en/docs/"
+    },
+    {
+      "name": "The Guardian Open Platform API",
+      "base_url": "https://content.guardianapis.com",
+      "available_endpoints": [
+        "/search",
+        "/tags",
+        "/sections",
+        "/editions"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "news",
+        "world news",
+        "sport",
+        "football",
+        "business",
+        "environment",
+        "politics",
+        "education",
+        "science",
+        "media",
+        "technology",
+        "global development"
+      ],
+      "query_parameters": {
+        "search": [
+          "q",
+          "section",
+          "tag",
+          "from-date",
+          "to-date",
+          "page",
+          "page-size",
+          "show-fields",
+          "order-by"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 500 calls per day, 1 call per second",
+      "registration_url": "https://open-platform.theguardian.com/access/",
+      "documentation_url": "https://open-platform.theguardian.com/documentation/"
+    },
+    {
+      "name": "New York Times API",
+      "base_url": "https://api.nytimes.com/svc",
+      "available_endpoints": [
+        "/search/v2/articlesearch.json",
+        "/topstories/v2/{section}.json",
+        "/mostpopular/v2/viewed/{period}.json"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "arts",
+        "automobiles",
+        "books",
+        "business",
+        "fashion",
+        "food",
+        "health",
+        "home",
+        "insider",
+        "magazine",
+        "movies",
+        "nyregion",
+        "obituaries",
+        "opinion",
+        "politics",
+        "realestate",
+        "science",
+        "sports",
+        "sundayreview",
+        "technology",
+        "theater",
+        "t-magazine",
+        "travel",
+        "upshot",
+        "us",
+        "world"
+      ],
+      "query_parameters": {
+        "articlesearch": [
+          "q",
+          "fq",
+          "begin_date",
+          "end_date",
+          "sort",
+          "fl",
+          "hl",
+          "page",
+          "facet_field",
+          "facet_filter"
+        ],
+        "topstories": [
+          "section"
+        ],
+        "mostpopular": [
+          "period"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available with daily request cap",
+      "registration_url": "https://developer.nytimes.com/accounts/create",
+      "documentation_url": "https://developer.nytimes.com/apis"
+    },
+    {
+      "name": "Marketaux Financial News API",
+      "base_url": "https://api.marketaux.com/v1",
+      "available_endpoints": [
+        "/news/all"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "finance",
+        "business",
+        "markets",
+        "stocks",
+        "crypto"
+      ],
+      "query_parameters": {
+        "news/all": [
+          "api_token",
+          "symbols",
+          "filter_entities",
+          "language",
+          "countries",
+          "limit",
+          "sort",
+          "published_after",
+          "published_before"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available, check documentation for current limits",
+      "registration_url": "https://marketaux.com/",
+      "documentation_url": "https://www.marketaux.com/documentation"
+    },
+    {
+      "name": "Finnhub Stock API",
+      "base_url": "https://finnhub.io/api/v1",
+      "available_endpoints": [
+        "/news",
+        "/company-news"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "general",
+        "forex",
+        "crypto",
+        "merger"
+      ],
+      "query_parameters": {
+        "news": [
+          "category",
+          "minId"
+        ],
+        "company-news": [
+          "symbol",
+          "from",
+          "to"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 60 API calls/minute",
+      "registration_url": "https://finnhub.io/register",
+      "documentation_url": "https://finnhub.io/docs/api"
+    },
+    {
+      "name": "Alpha Vantage",
+      "base_url": "https://www.alphavantage.co/query",
+      "available_endpoints": [
+        "/query"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "finance",
+        "stocks",
+        "forex",
+        "crypto"
+      ],
+      "query_parameters": {
+        "query": [
+          "function",
+          "symbol",
+          "interval",
+          "apikey"
+        ]
+      },
+      "response_format": "JSON or CSV",
+      "rate_limits": "Free tier: 5 API requests per minute, 500 requests per day",
+      "registration_url": "https://www.alphavantage.co/support/#api-key",
+      "documentation_url": "https://www.alphavantage.co/documentation/"
+    },
+    {
+      "name": "World News API",
+      "base_url": "https://api.worldnewsapi.com/v1",
+      "available_endpoints": [
+        "/search-news",
+        "/extract-news",
+        "/geo-coordinates"
+      ],
+      "authentication_method": "API Key in header",
+      "supported_categories": [
+        "business",
+        "entertainment",
+        "health",
+        "politics",
+        "products",
+        "science",
+        "sports",
+        "technology",
+        "world"
+      ],
+      "query_parameters": {
+        "search-news": [
+          "text",
+          "source-countries",
+          "language",
+          "min-sentiment",
+          "max-sentiment",
+          "earliest-publish-date",
+          "latest-publish-date",
+          "news-sources",
+          "authors",
+          "entities",
+          "location-filter",
+          "sort",
+          "sort-direction",
+          "offset",
+          "number"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 60 requests per minute, 1 concurrent request",
+      "registration_url": "https://worldnewsapi.com/",
+      "documentation_url": "https://worldnewsapi.com/docs/"
+    },
+    {
+      "name": "Financial Modeling Prep API",
+      "base_url": "https://financialmodelingprep.com/api/v3",
+      "available_endpoints": [
+        "/stock_news",
+        "/fmp/articles"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "finance",
+        "stocks",
+        "business"
+      ],
+      "query_parameters": {
+        "stock_news": [
+          "tickers",
+          "limit",
+          "apikey"
+        ],
+        "fmp/articles": [
+          "page",
+          "size",
+          "apikey"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available with limited requests",
+      "registration_url": "https://financialmodelingprep.com/register",
+      "documentation_url": "https://financialmodelingprep.com/developer/docs/"
+    },
+    {
+      "name": "Rapid API - Live American Politics News",
+      "base_url": "https://rapidapi.com/marketplace",
+      "available_endpoints": [
+        "/connect/politics"
+      ],
+      "authentication_method": "API Key in header",
+      "supported_categories": [
+        "politics",
+        "government",
+        "US news"
+      ],
+      "query_parameters": {
+        "connect/politics": [
+          "source",
+          "limit"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Varies by specific API, free tier typically available",
+      "registration_url": "https://rapidapi.com/auth/sign-up",
+      "documentation_url": "https://rapidapi.com/marketplace"
+    },
+    {
+      "name": "APITube Automotive News API",
+      "base_url": "https://apitube.io/",
+      "available_endpoints": [
+        "/automotive-news"
+      ],
+      "authentication_method": "API Key in header or query parameter",
+      "supported_categories": [
+        "automotive",
+        "cars",
+        "vehicles"
+      ],
+      "query_parameters": {
+        "automotive-news": [
+          "language",
+          "country",
+          "limit",
+          "offset"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available, check documentation for current limits",
+      "registration_url": "https://apitube.io/sign-up",
+      "documentation_url": "https://apitube.io/docs"
+    },
+    {
+      "name": "Crypto News API",
+      "base_url": "https://cryptonews-api.com/api",
+      "available_endpoints": [
+        "/v1"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "cryptocurrency",
+        "blockchain",
+        "bitcoin",
+        "ethereum"
+      ],
+      "query_parameters": {
+        "v1": [
+          "tickers",
+          "items",
+          "page",
+          "token"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available with limited requests",
+      "registration_url": "https://cryptonews-api.com/register",
+      "documentation_url": "https://cryptonews-api.com/documentation"
+    },
+    {
+      "name": "WeatherAPI.com",
+      "base_url": "https://api.weatherapi.com/v1",
+      "available_endpoints": [
+        "/current.json",
+        "/forecast.json",
+        "/history.json",
+        "/search.json"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "weather",
+        "forecast",
+        "alerts"
+      ],
+      "query_parameters": {
+        "current.json": [
+          "key",
+          "q",
+          "aqi"
+        ],
+        "forecast.json": [
+          "key",
+          "q",
+          "days",
+          "aqi",
+          "alerts"
+        ],
+        "history.json": [
+          "key",
+          "q",
+          "dt",
+          "end_dt"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 1,000,000 calls per month",
+      "registration_url": "https://www.weatherapi.com/signup.aspx",
+      "documentation_url": "https://www.weatherapi.com/docs/"
+    },
+    {
+      "name": "Open-Meteo Weather API",
+      "base_url": "https://api.open-meteo.com/v1",
+      "available_endpoints": [
+        "/forecast",
+        "/climate",
+        "/marine",
+        "/air-quality"
+      ],
+      "authentication_method": "No authentication required",
+      "supported_categories": [
+        "weather",
+        "forecast",
+        "climate",
+        "marine",
+        "air-quality"
+      ],
+      "query_parameters": {
+        "forecast": [
+          "latitude",
+          "longitude",
+          "hourly",
+          "daily",
+          "timezone"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free for non-commercial use, no hard limits specified",
+      "registration_url": "No registration required",
+      "documentation_url": "https://open-meteo.com/en/docs"
+    },
+    {
+      "name": "National Weather Service API",
+      "base_url": "https://api.weather.gov",
+      "available_endpoints": [
+        "/points/{point}",
+        "/gridpoints/{wfo}/{x},{y}/forecast",
+        "/alerts"
+      ],
+      "authentication_method": "No authentication required",
+      "supported_categories": [
+        "weather",
+        "forecast",
+        "alerts"
+      ],
+      "query_parameters": {
+        "alerts": [
+          "area",
+          "region",
+          "zone",
+          "urgency",
+          "severity",
+          "certainty",
+          "status"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "No specific limits mentioned, but reasonable use expected",
+      "registration_url": "No registration required",
+      "documentation_url": "https://www.weather.gov/documentation/services-web-api"
+    },
+    {
+      "name": "Amadeus Travel API",
+      "base_url": "https://api.amadeus.com/v1",
+      "available_endpoints": [
+        "/reference-data/locations",
+        "/shopping/flight-offers",
+        "/shopping/hotel-offers"
+      ],
+      "authentication_method": "OAuth 2.0",
+      "supported_categories": [
+        "travel",
+        "flights",
+        "hotels",
+        "destinations"
+      ],
+      "query_parameters": {
+        "reference-data/locations": [
+          "keyword",
+          "subType",
+          "countryCode",
+          "page[limit]"
+        ],
+        "shopping/flight-offers": [
+          "originLocationCode",
+          "destinationLocationCode",
+          "departureDate",
+          "adults"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 2,000 API calls per month",
+      "registration_url": "https://developers.amadeus.com/register",
+      "documentation_url": "https://developers.amadeus.com/self-service/apis-docs"
+    },
+    {
+      "name": "Edamam Food and Recipe API",
+      "base_url": "https://api.edamam.com/api",
+      "available_endpoints": [
+        "/recipes/v2",
+        "/food-database/v2/parser",
+        "/nutrition-data"
+      ],
+      "authentication_method": "API Key and App ID in query parameters",
+      "supported_categories": [
+        "food",
+        "recipes",
+        "nutrition"
+      ],
+      "query_parameters": {
+        "recipes/v2": [
+          "type",
+          "q",
+          "app_id",
+          "app_key",
+          "diet",
+          "health",
+          "cuisineType"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 10,000 API calls per month",
+      "registration_url": "https://developer.edamam.com/edamam-recipe-api",
+      "documentation_url": "https://developer.edamam.com/edamam-docs-recipe-api"
+    },
+    {
+      "name": "Fashion Industry News API (RapidAPI)",
+      "base_url": "https://rapidapi.com/marketplace",
+      "available_endpoints": [
+        "/fashion-news"
+      ],
+      "authentication_method": "API Key in header",
+      "supported_categories": [
+        "fashion",
+        "style",
+        "trends"
+      ],
+      "query_parameters": {
+        "fashion-news": [
+          "source",
+          "limit"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Varies by specific API, free tier typically available",
+      "registration_url": "https://rapidapi.com/auth/sign-up",
+      "documentation_url": "https://rapidapi.com/marketplace"
+    },
+    {
+      "name": "Video Game News API (RapidAPI)",
+      "base_url": "https://rapidapi.com/marketplace",
+      "available_endpoints": [
+        "/gaming-news"
+      ],
+      "authentication_method": "API Key in header",
+      "supported_categories": [
+        "gaming",
+        "video games",
+        "esports"
+      ],
+      "query_parameters": {
+        "gaming-news": [
+          "franchise",
+          "limit"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Varies by specific API, free tier typically available",
+      "registration_url": "https://rapidapi.com/auth/sign-up",
+      "documentation_url": "https://rapidapi.com/marketplace"
+    },
+    {
+      "name": "College Scorecard API",
+      "base_url": "https://api.data.gov/ed/collegescorecard/v1",
+      "available_endpoints": [
+        "/schools"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "education",
+        "colleges",
+        "universities"
+      ],
+      "query_parameters": {
+        "schools": [
+          "api_key",
+          "school.name",
+          "school.state",
+          "school.degrees_awarded.predominant",
+          "fields"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available, check documentation for current limits",
+      "registration_url": "https://api.data.gov/signup/",
+      "documentation_url": "https://collegescorecard.ed.gov/data/documentation/"
+    },
+    {
+      "name": "RSS API (rssapi.net)",
+      "base_url": "https://api.rssapi.net/v1",
+      "available_endpoints": [
+        "/feed"
+      ],
+      "authentication_method": "API Key in header or query parameter",
+      "supported_categories": [
+        "rss",
+        "feeds",
+        "news"
+      ],
+      "query_parameters": {
+        "feed": [
+          "url",
+          "limit",
+          "format"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available with limited requests",
+      "registration_url": "https://rssapi.net/register",
+      "documentation_url": "https://rssapi.net/docs"
+    },
+    {
+      "name": "Juicer Social Media API",
+      "base_url": "https://www.juicer.io/api",
+      "available_endpoints": [
+        "/feeds",
+        "/posts"
+      ],
+      "authentication_method": "API Key in header",
+      "supported_categories": [
+        "social media",
+        "feeds",
+        "aggregation"
+      ],
+      "query_parameters": {
+        "feeds": [
+          "api_key",
+          "per",
+          "page"
+        ],
+        "posts": [
+          "api_key",
+          "feed_id",
+          "per",
+          "page"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available with limitations",
+      "registration_url": "https://www.juicer.io/sign-up",
+      "documentation_url": "https://www.juicer.io/api"
+    },
+    {
+      "name": "AirVisual API",
+      "base_url": "https://api.airvisual.com/v2",
+      "available_endpoints": [
+        "/countries",
+        "/states",
+        "/cities",
+        "/city",
+        "/nearest_city"
+      ],
+      "authentication_method": "API Key in query parameter",
+      "supported_categories": [
+        "air quality",
+        "environment",
+        "health"
+      ],
+      "query_parameters": {
+        "nearest_city": [
+          "lat",
+          "lon",
+          "key"
+        ],
+        "city": [
+          "city",
+          "state",
+          "country",
+          "key"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier: 10,000 calls per month",
+      "registration_url": "https://www.iqair.com/air-pollution-data-api",
+      "documentation_url": "https://api-docs.iqair.com/"
+    },
+    {
+      "name": "CoinDesk Cryptocurrency Data API",
+      "base_url": "https://api.coindesk.com/v1",
+      "available_endpoints": [
+        "/bpi/currentprice.json",
+        "/bpi/historical/close.json"
+      ],
+      "authentication_method": "No authentication required",
+      "supported_categories": [
+        "cryptocurrency",
+        "bitcoin",
+        "finance"
+      ],
+      "query_parameters": {
+        "bpi/historical/close.json": [
+          "start",
+          "end",
+          "currency"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "No specific limits mentioned",
+      "registration_url": "No registration required",
+      "documentation_url": "https://www.coindesk.com/coindesk-api"
+    },
+    {
+      "name": "Inoreader API",
+      "base_url": "https://www.inoreader.com/developers/api",
+      "available_endpoints": [
+        "/user-info",
+        "/subscription-list",
+        "/stream-contents"
+      ],
+      "authentication_method": "OAuth 2.0",
+      "supported_categories": [
+        "rss",
+        "feeds",
+        "news"
+      ],
+      "query_parameters": {
+        "stream-contents": [
+          "streamId",
+          "n",
+          "r",
+          "xt"
+        ]
+      },
+      "response_format": "JSON",
+      "rate_limits": "Free tier available with limitations",
+      "registration_url": "https://www.inoreader.com/developers/register",
+      "documentation_url": "https://www.inoreader.com/developers/api"
+    }
+  ]
+}
