@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function NewsCard({ article }) {
   const [expanded, setExpanded] = useState(false);
+  const [summary, setSummary] = useState(article.summary);
+  const [sentiment, setSentiment] = useState(article.sentiment);
+  const [loading, setLoading] = useState(false);
   
   // Format the published date
   const formatDate = (dateString) => {
@@ -21,6 +24,24 @@ function NewsCard({ article }) {
     e.target.src = '/placeholder-news.jpg';
     e.target.alt = 'News placeholder image';
   };
+
+  useEffect(() => {
+    if (expanded && (!summary || !sentiment) && !loading) {
+      setLoading(true);
+      fetch('http://localhost:4000/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: article.title, content: article.content || article.description })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.summary) setSummary(data.summary);
+          if (data.sentiment) setSentiment(data.sentiment);
+        })
+        .catch(err => console.error('Error fetching analysis', err))
+        .finally(() => setLoading(false));
+    }
+  }, [expanded]);
 
   return (
     <div className={`news-card ${expanded ? 'expanded' : ''}`}>
@@ -49,19 +70,27 @@ function NewsCard({ article }) {
             {article.title}
           </a>
         </h3>
-        
+
         <p className="news-description">
-          {expanded ? article.summary || article.description : article.description?.substring(0, 150)}
+          {expanded ? summary || article.description : article.description?.substring(0, 150)}
           {!expanded && article.description && article.description.length > 150 && '...'}
         </p>
-        
-        {(article.summary || (article.description && article.description.length > 150)) && (
-          <button 
-            className="expand-button" 
+
+        {(summary || (article.description && article.description.length > 150)) && (
+          <button
+            className="expand-button"
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? 'Show less' : 'Show more'}
           </button>
+        )}
+
+        {expanded && loading && <div className="loading">Analyzing...</div>}
+        {expanded && summary && (
+          <div className="analysis-panel">
+            <h4>Summary</h4>
+            <p>{summary}</p>
+          </div>
         )}
       </div>
       
@@ -86,9 +115,9 @@ function NewsCard({ article }) {
           Read full article
         </a>
         
-        {article.sentiment && (
-          <div className={`sentiment-indicator ${article.sentiment.toLowerCase()}`}>
-            {article.sentiment}
+        {sentiment && (
+          <div className={`sentiment-indicator ${sentiment.toLowerCase()}`}>
+            {sentiment}
           </div>
         )}
       </div>

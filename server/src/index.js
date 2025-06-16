@@ -6,6 +6,7 @@ const { expressMiddleware } = require('@apollo/server/express4');
 const { ApolloServerPluginDrainHttpServer } = require('@apollo/server/plugin/drainHttpServer');
 const { typeDefs } = require('./graphql/schema');
 const { resolvers } = require('./graphql/resolvers');
+const BertAnalyzer = require('./ai/bertAnalyzer');
 require('dotenv').config();
 
 // Import the config to ensure it's properly loaded
@@ -74,6 +75,25 @@ async function startServer() {
       status: 'ok',
       apis: apiStatus,
     });
+  });
+
+  // BERT-based summarization and sentiment analysis
+  const bert = new BertAnalyzer();
+  app.post('/api/analyze', express.json({ limit: '1mb' }), async (req, res) => {
+    const { title = '', content = '' } = req.body || {};
+    if (!title && !content) {
+      return res.status(400).json({ error: 'No article text provided' });
+    }
+
+    try {
+      const text = `${title}\n${content}`.trim();
+      const summary = await bert.summarize(text);
+      const sentiment = await bert.analyzeSentiment(text);
+      res.json({ summary, sentiment });
+    } catch (err) {
+      console.error('BERT analysis error:', err);
+      res.status(500).json({ error: 'Failed to analyze article' });
+    }
   });
 
   // Start the server
