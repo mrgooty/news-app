@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client'
 import './App.css'
@@ -7,6 +6,7 @@ import './App.css'
 import HomePage from './pages/HomePage'
 import CategoryPage from './pages/CategoryPage'
 import SearchPage from './pages/SearchPage'
+import PreferencesPage from './pages/PreferencesPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 // Import components
@@ -34,6 +34,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/category/:categoryId" element={<CategoryPage />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/preferences" element={<PreferencesPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>

@@ -1,63 +1,77 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
-import { gql } from '@apollo/client';
-
-// GraphQL query to fetch categories for the navigation menu
-const GET_CATEGORIES = gql`
-  query GetCategories {
-    categories {
-      id
-      name
-    }
-  }
-`;
+import { useUserPreferences } from '../context/UserPreferencesContext';
 
 function Header() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { darkMode, toggleDarkMode } = useUserPreferences();
   const navigate = useNavigate();
-  const { data } = useQuery(GET_CATEGORIES);
-  
-  const handleSearch = (e) => {
+
+  const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
+      setIsMenuOpen(false);
     }
   };
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
   return (
-    <header className="header">
+    <header className="app-header">
       <div className="header-container">
-        <div className="logo">
-          <Link to="/">
-            <h1>NewsAI</h1>
+        <div className="logo-container">
+          <Link to="/" className="logo">
+            NewsAI
           </Link>
         </div>
-        
-        <nav className="main-nav">
-          <ul>
+
+        <div className="search-container">
+          <form onSubmit={handleSearchSubmit}>
+            <input
+              type="text"
+              placeholder="Search news..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="search-button">
+              <span className="search-icon">🔍</span>
+            </button>
+          </form>
+        </div>
+
+        <nav className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
+          <ul className="nav-links">
             <li>
-              <Link to="/">Home</Link>
+              <Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
             </li>
-            {data && data.categories && data.categories.map(category => (
-              <li key={category.id}>
-                <Link to={`/category/${category.id}`}>{category.name}</Link>
-              </li>
-            ))}
+            <li>
+              <Link to="/preferences" onClick={() => setIsMenuOpen(false)}>Preferences</Link>
+            </li>
+            <li>
+              <button 
+                className="theme-toggle" 
+                onClick={toggleDarkMode}
+                aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {darkMode ? '☀️' : '🌙'}
+              </button>
+            </li>
           </ul>
         </nav>
-        
-        <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search news..."
-            className="search-input"
-          />
-          <button type="submit" className="search-button">Search</button>
-        </form>
+
+        <button 
+          className={`menu-toggle ${isMenuOpen ? 'open' : ''}`} 
+          onClick={toggleMenu}
+          aria-label="Toggle menu"
+        >
+          <span className="menu-icon"></span>
+        </button>
       </div>
     </header>
   );

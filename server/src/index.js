@@ -8,7 +8,11 @@ const { typeDefs } = require('./graphql/schema');
 const { resolvers } = require('./graphql/resolvers');
 require('dotenv').config();
 
+// Import the config to ensure it's properly loaded
+const config = require('./config/config');
+
 async function startServer() {
+  // Create Express app and HTTP server
   const app = express();
   const httpServer = http.createServer(app);
 
@@ -17,6 +21,19 @@ async function startServer() {
     typeDefs,
     resolvers,
     plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+    formatError: (error) => {
+      // Log errors for debugging
+      console.error('GraphQL Error:', error);
+      
+      // Return a sanitized error to the client
+      return {
+        message: error.message,
+        path: error.path,
+        extensions: {
+          code: error.extensions?.code || 'INTERNAL_SERVER_ERROR',
+        },
+      };
+    },
   });
 
   // Start the Apollo Server
@@ -27,7 +44,14 @@ async function startServer() {
     '/graphql',
     cors(),
     express.json(),
-    expressMiddleware(server)
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        // You can add authentication and other context here
+        return { 
+          // Add any context values needed by resolvers
+        };
+      },
+    })
   );
 
   // Health check endpoint
@@ -35,12 +59,34 @@ async function startServer() {
     res.status(200).send('Server is running');
   });
 
+  // API keys status endpoint
+  app.get('/api-status', (req, res) => {
+    // Check if API keys are configured
+    const apiStatus = {};
+    
+    for (const [apiName, apiConfig] of Object.entries(config.newsApis)) {
+      apiStatus[apiName] = {
+        configured: Boolean(apiConfig.apiKey && apiConfig.apiKey !== 'your_' + apiName + '_key_here'),
+      };
+    }
+    
+    res.status(200).json({
+      status: 'ok',
+      apis: apiStatus,
+    });
+  });
+
   // Start the server
-  const PORT = process.env.PORT || 4000;
+  const PORT = config.server.port;
   await new Promise(resolve => httpServer.listen({ port: PORT }, resolve));
+  
   console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
+  console.log(`Health check available at http://localhost:${PORT}/health`);
+  console.log(`API status available at http://localhost:${PORT}/api-status`);
 }
 
+// Start the server and handle errors
 startServer().catch(err => {
   console.error('Error starting server:', err);
+  process.exit(1);
 });

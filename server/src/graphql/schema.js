@@ -10,6 +10,15 @@ const typeDefs = `#graphql
     source: String
     publishedAt: String
     category: String
+    summary: String
+    location: String
+    # New fields from AI processing
+    entities: [String]
+    topics: [String]
+    sentiment: String
+    importance: Float
+    relevanceScore: Float
+    finalScore: Float
   }
 
   # News category type
@@ -19,19 +28,58 @@ const typeDefs = `#graphql
     description: String
   }
 
+  # News source type
+  type Source {
+    id: ID!
+    name: String!
+    description: String
+  }
+
+  # Location type
+  type Location {
+    id: ID!
+    name: String!
+    code: String!
+  }
+
+  # Error type for handling API failures
+  type ApiError {
+    source: String!
+    message: String!
+    code: String
+  }
+
+  # News response with potential errors
+  type NewsResponse {
+    articles: [Article!]!
+    errors: [ApiError!]
+  }
+
   # Queries
   type Query {
     # Get all available news categories
     categories: [Category!]!
     
-    # Get news articles by category
-    articlesByCategory(category: String!, limit: Int): [Article!]!
+    # Get all available news sources
+    sources: [Source!]!
+    
+    # Get all available locations
+    locations: [Location!]!
+    
+    # Get news articles by category and optional location
+    articlesByCategory(category: String!, location: String, limit: Int, sources: [String]): NewsResponse!
     
     # Get a specific article by ID
     article(id: ID!): Article
     
-    # Search for articles
-    searchArticles(query: String!, limit: Int): [Article!]!
+    # Search for articles with optional category and location filters
+    searchArticles(query: String!, category: String, location: String, limit: Int, sources: [String]): NewsResponse!
+    
+    # Get top headlines with optional filters
+    topHeadlines(category: String, location: String, limit: Int, sources: [String]): NewsResponse!
+    
+    # Get top stories across multiple categories
+    topStoriesAcrossCategories(categories: [String], limit: Int, location: String, sources: [String]): NewsResponse!
   }
 
   # Root schema
