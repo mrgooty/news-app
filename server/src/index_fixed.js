@@ -31,7 +31,7 @@ async function startServer() {
   // Enable CORS for all routes
   app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://news-app-client.example.com'] // Replace with actual production domain
+      ? ['https://github.com/rakshit444/news-sample-app'] // Replace with actual production domain
       : ['http://localhost:3000', 'http://localhost:5173'], // Development domains
     credentials: true
   }));
@@ -64,7 +64,7 @@ async function startServer() {
     '/graphql',
     cors({
       origin: process.env.NODE_ENV === 'production' 
-        ? ['https://news-app-client.example.com'] // Replace with actual production domain
+        ? ['https://github.com/rakshit444/news-sample-app'] // Replace with actual production domain
         : ['http://localhost:3000', 'http://localhost:5173'], // Development domains
       credentials: true
     }),

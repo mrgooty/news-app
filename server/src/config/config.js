@@ -86,13 +86,48 @@ const config = {
   
   // Cache configuration
   cache: {
-    ttl: 15 * 60 * 1000, // 15 minutes in milliseconds
+    memory: {
+      ttl: 15 * 60 * 1000, // 15 minutes in milliseconds
+      maxSize: 1000, // Maximum number of items in memory cache
+    },
+    redis: {
+      url: process.env.REDIS_URL || null,
+      ttl: 60 * 60 * 1000, // 1 hour in milliseconds
+    },
+    // Cache TTL by content type (in milliseconds)
+    ttlByType: {
+      summary: 24 * 60 * 60 * 1000, // 24 hours for summaries
+      category: 24 * 60 * 60 * 1000, // 24 hours for categories
+      sentiment: 24 * 60 * 60 * 1000, // 24 hours for sentiment analysis
+      entities: 24 * 60 * 60 * 1000, // 24 hours for entity extraction
+      relevance: 12 * 60 * 60 * 1000, // 12 hours for relevance scores
+      articles: 30 * 60 * 1000, // 30 minutes for article lists
+    }
   },
   
   // LangChain/OpenAI configuration
   ai: {
     openaiApiKey: process.env.OPENAI_API_KEY,
     model: process.env.AI_MODEL || 'gpt-3.5-turbo',
+    fallbackModel: 'gpt-3.5-turbo', // Fallback model if primary is unavailable
+    temperature: 0.1, // Lower temperature for more consistent results
+    maxTokens: 500, // Default max tokens for responses
+    requestTimeout: 30000, // 30 seconds timeout for API requests
+    retryAttempts: 3, // Number of retry attempts for failed requests
+    rateLimits: {
+      requestsPerMinute: 60, // Default rate limit
+      tokensPerMinute: 90000, // Default token rate limit
+    },
+    // Feature flags for AI capabilities
+    features: {
+      summarization: true,
+      categorization: true,
+      sentimentAnalysis: true,
+      entityExtraction: true,
+      relevanceScoring: true,
+      deduplication: true,
+      fallbackToLocal: true, // Use local models as fallback
+    }
   },
   
   // Category mapping between different APIs

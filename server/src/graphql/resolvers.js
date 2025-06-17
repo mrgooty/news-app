@@ -1,13 +1,13 @@
 const NewsServiceManager = require('../services/newsServiceManager');
-const NewsAggregator = require('../ai/newsAggregator');
+const { ImprovedNewsAggregator } = require('../ai');
 const createLogger = require("../utils/logger");
 const log = createLogger("Resolvers");
 
 // Initialize the news service manager
 const newsServiceManager = new NewsServiceManager();
 
-// Initialize the AI news aggregator
-const newsAggregator = new NewsAggregator();
+// Initialize the improved AI news aggregator
+const newsAggregator = new ImprovedNewsAggregator();
 
 const resolvers = {
   Query: {
@@ -41,7 +41,8 @@ const resolvers = {
           // Rank the processed articles
           const rankedArticles = await newsAggregator.rankArticles(processedArticles, {
             recencyWeight: 0.3,
-            scoreWeight: 0.7
+            scoreWeight: 0.7,
+            diversityBoost: 0.1
           });
           
           // Limit to the requested number
@@ -84,8 +85,18 @@ const resolvers = {
           // Process all articles with AI
           const processedArticles = await newsAggregator.processArticles(result.articles);
           
+          // Filter articles to prioritize those matching the search query
+          const filteredArticles = await newsAggregator.filterArticles(processedArticles, {
+            minScore: 4.0,
+            category: category,
+            includeKeywords: [query],
+          });
+          
+          // If filtering removed too many articles, use the original processed articles
+          const articlesToRank = filteredArticles.length < limit / 2 ? processedArticles : filteredArticles;
+          
           // Rank the processed articles
-          const rankedArticles = await newsAggregator.rankArticles(processedArticles, {
+          const rankedArticles = await newsAggregator.rankArticles(articlesToRank, {
             recencyWeight: 0.3,
             scoreWeight: 0.7
           });
@@ -122,8 +133,9 @@ const resolvers = {
           
           // Rank the processed articles
           const rankedArticles = await newsAggregator.rankArticles(processedArticles, {
-            recencyWeight: 0.3,
-            scoreWeight: 0.7
+            recencyWeight: 0.4, // Higher weight on recency for headlines
+            scoreWeight: 0.6,
+            diversityBoost: 0.1
           });
           
           // Limit to the requested number
@@ -144,7 +156,7 @@ const resolvers = {
       }
     },
     
-    // NEW RESOLVER: Get top stories across multiple categories
+    // Get top stories across multiple categories
     topStoriesAcrossCategories: async (_, { categories = ['general'], limit = 15, location, sources }) => {
       log(`Fetching top stories across categories: ${categories}, limit: ${limit}, location: ${location}, sources: ${sources}`);
       
@@ -178,6 +190,27 @@ const resolvers = {
       }
     },
 
+    // Get performance metrics
+    performanceMetrics: async () => {
+      try {
+        const metrics = newsAggregator.getPerformanceMetrics();
+        return {
+          cacheHitRate: metrics.cacheStats?.hitRate || '0%',
+          averageProcessingTime: metrics.averageProcessArticleTime || 0,
+          totalRequests: metrics.totalRequestCount || 0,
+          apiCalls: metrics.apiUsage?.totalCalls || 0,
+        };
+      } catch (error) {
+        console.error('Error getting performance metrics:', error);
+        return {
+          cacheHitRate: '0%',
+          averageProcessingTime: 0,
+          totalRequests: 0,
+          apiCalls: 0,
+        };
+      }
+    },
+
     prefs: (_, __, { prefs }) => prefs
   },
 
@@ -186,6 +219,16 @@ const resolvers = {
       const p = { categories, locations };
       setPrefs(p);
       return p;
+    },
+    
+    // Reset performance metrics
+    resetMetrics: async () => {
+      try {
+        newsAggregator.resetMetrics();
+        return { success: true, message: 'Metrics reset successfully' };
+      } catch (error) {
+        return { success: false, message: `Error resetting metrics: ${error.message}` };
+      }
     }
   }
 };

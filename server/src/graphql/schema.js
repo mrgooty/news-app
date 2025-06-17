@@ -12,13 +12,16 @@ const typeDefs = `#graphql
     category: String
     summary: String
     location: String
-    # New fields from AI processing
+    # Fields from AI processing
     entities: [String]
     topics: [String]
     sentiment: String
     importance: Float
     relevanceScore: Float
     finalScore: Float
+    recencyScore: Float
+    combinedScore: Float
+    processingError: String
   }
 
   # News category type
@@ -33,6 +36,7 @@ const typeDefs = `#graphql
     id: ID!
     name: String!
     description: String
+    available: Boolean
   }
 
   # Location type
@@ -60,6 +64,20 @@ const typeDefs = `#graphql
     errors: [ApiError!]
   }
 
+  # Performance metrics type
+  type PerformanceMetrics {
+    cacheHitRate: String!
+    averageProcessingTime: Float!
+    totalRequests: Int!
+    apiCalls: Int!
+  }
+
+  # Response for mutations
+  type MutationResponse {
+    success: Boolean!
+    message: String
+  }
+
   # Queries
   type Query {
     # Get all available news categories
@@ -85,11 +103,20 @@ const typeDefs = `#graphql
     
     # Get top stories across multiple categories
     topStoriesAcrossCategories(categories: [String], limit: Int, location: String, sources: [String]): NewsResponse!
+    
+    # Get performance metrics
+    performanceMetrics: PerformanceMetrics!
+    
+    # Get user preferences
     prefs: Prefs
   }
 
   type Mutation {
+    # Set user preferences
     setPrefs(categories: [String!]!, locations: [String!]!): Prefs
+    
+    # Reset performance metrics
+    resetMetrics: MutationResponse!
   }
 
   # Root schema

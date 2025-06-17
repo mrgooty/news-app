@@ -6,9 +6,9 @@ const config = require('../config/config');
 const cache = new Map();
 
 /**
- * HTTP client with caching, rate limiting, and error handling
+ * HTTP client with caching, rate limiting, and improved error handling
  */
-const log=createLogger("HttpClient");
+const log = createLogger("HttpClient");
 
 class HttpClient {
   /**
@@ -81,6 +81,11 @@ class HttpClient {
     await this.applyRateLimit();
     
     try {
+      // Check if API key is available
+      if (!this.apiConfig.apiKey) {
+        throw new Error(`API key for ${this.apiName} is not configured. Please add it to your .env file.`);
+      }
+      
       // Prepare request configuration
       const requestConfig = {
         params: { ...params },
@@ -125,7 +130,15 @@ class HttpClient {
       return response.data;
     } catch (error) {
       this.handleError(error, endpoint);
-      throw error;
+      
+      // Enhance error with more context
+      const enhancedError = new Error(this.getEnhancedErrorMessage(error, endpoint));
+      enhancedError.originalError = error;
+      enhancedError.apiName = this.apiName;
+      enhancedError.endpoint = endpoint;
+      enhancedError.params = params;
+      
+      throw enhancedError;
     }
   }
 
@@ -146,6 +159,52 @@ class HttpClient {
       default:
         return 'apiKey';
     }
+  }
+
+  /**
+   * Create an enhanced error message with more context
+   * @param {Error} error - The original error
+   * @param {string} endpoint - The API endpoint
+   * @returns {string} - Enhanced error message
+   */
+  getEnhancedErrorMessage(error, endpoint) {
+    let message = `[${this.apiName}] Error calling ${endpoint}: `;
+    
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      message += `Status ${error.response.status} - ${error.response.statusText}`;
+      
+      // Add more context based on status code
+      if (error.response.status === 401) {
+        message += `. Invalid API key or authentication failure. Please check your ${this.apiName} API key.`;
+      } else if (error.response.status === 403) {
+        message += `. Access forbidden. Your API key may have exceeded its rate limit or lacks necessary permissions.`;
+      } else if (error.response.status === 404) {
+        message += `. Endpoint not found. Please check the API documentation for correct endpoints.`;
+      } else if (error.response.status === 429) {
+        message += `. Rate limit exceeded. Please reduce request frequency or upgrade your API plan.`;
+      } else if (error.response.data && typeof error.response.data === 'object') {
+        // Try to extract error message from response data
+        const errorMsg = error.response.data.message || 
+                         error.response.data.error || 
+                         JSON.stringify(error.response.data);
+        message += `. ${errorMsg}`;
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      message += `No response received. The service may be down or network connectivity issues occurred.`;
+    } else {
+      // Something happened in setting up the request
+      message += error.message;
+      
+      // Check for common configuration issues
+      if (error.message.includes('API key')) {
+        message += ` Make sure you've added the ${this.apiName.toUpperCase()}_API_KEY to your .env file.`;
+      }
+    }
+    
+    return message;
   }
 
   /**
@@ -180,6 +239,42 @@ class HttpClient {
         cache.delete(key);
       }
     }
+  }
+  
+  /**
+   * Retry a failed request with exponential backoff
+   * @param {Function} requestFn - The request function to retry
+   * @param {number} maxRetries - Maximum number of retries
+   * @param {number} initialDelay - Initial delay in milliseconds
+   * @returns {Promise<any>} - The response data
+   */
+  async retryWithBackoff(requestFn, maxRetries = 3, initialDelay = 300) {
+    let lastError;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await requestFn();
+      } catch (error) {
+        lastError = error;
+        
+        // Don't retry if it's a client error (4xx)
+        if (error.response && error.response.status >= 400 && error.response.status < 500) {
+          break;
+        }
+        
+        // Don't retry on the last attempt
+        if (attempt === maxRetries) {
+          break;
+        }
+        
+        // Calculate delay with exponential backoff
+        const delay = initialDelay * Math.pow(2, attempt);
+        log(`[${this.apiName}] Retrying request in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError;
   }
 }
 
