@@ -11,7 +11,10 @@ This application aggregates news from multiple free news APIs, categorizes them,
 - **Frontend**: React with Apollo Client for GraphQL
 - **Backend**: Node.js with Express and Apollo Server
 - **API**: GraphQL
-- **AI**: LangChain and LangGraph for news processing and aggregation
+- **AI**: LangChain and LangGraph orchestrate advanced language models (ALMs)
+  for Natural Language Processing (NLP) tasks such as summarizing articles,
+  deduplicating similar content, and ranking results. This provides concise,
+  relevant news across sources.
 
 ## Project Structure
 
@@ -63,6 +66,7 @@ news-app/
 4. Set up environment variables:
    - Copy the `.env.template` file in the server directory to `.env`
    - Add your API keys for the news services
+   - (Optional) copy `client/.env.template` to `client/.env` to override the GraphQL URL
 
 ### Running the Application
 
@@ -80,13 +84,25 @@ news-app/
 
 3. Open your browser and navigate to `http://localhost:5173` (or the port shown in your terminal)
 
+### Docker Compose
+
+You can run the entire stack with Docker:
+
+```bash
+docker-compose up --build
+```
+
+The client will be available on `http://localhost:5173` and the GraphQL server on `http://localhost:4000`.
+
 ## Features
 
 - Browse news by categories
 - Search for specific news topics
 - AI-enhanced news aggregation from multiple sources
 - Clean and responsive user interface
+- Color-coded category tabs in the preferences flow for a design similar to Apple News
 
 ## License
 
 ISC
+

@@ -15,7 +15,7 @@ import Footer from './components/Footer'
 
 // Create Apollo Client
 const httpLink = createHttpLink({
-  uri: 'http://localhost:4000/graphql',
+  uri: import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:4000/graphql',
 })
 
 const client = new ApolloClient({

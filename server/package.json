@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest"
+    "test": "jest",
+    "deps:update": "npx npm-check-updates -u && npm install"
   },
   "keywords": [
     "news",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.3",
+    "npm-check-updates": "^18.0.1"
   }
 }

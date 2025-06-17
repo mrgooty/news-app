@@ -13,6 +13,10 @@
   --warning-color: #f59e0b;
   --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --transition-speed: 0.3s;
+  --category-red: #ff3b30;
+  --category-yellow: #ffcc00;
+  --category-blue: #007aff;
+  --category-green: #34c759;
 }
 
 /* Dark mode variables */
@@ -346,6 +350,11 @@ body {
   background-color: var(--background-color);
 }
 
+.category-item.category-red { background-color: rgba(255, 59, 48, 0.1); }
+.category-item.category-yellow { background-color: rgba(255, 204, 0, 0.1); }
+.category-item.category-blue { background-color: rgba(0, 122, 255, 0.1); }
+.category-item.category-green { background-color: rgba(52, 199, 89, 0.1); }
+
 .category-item:hover {
   transform: translateY(-2px);
   box-shadow: var(--card-shadow);
@@ -448,6 +457,26 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.category-red {
+  background-color: var(--category-red);
+  color: #fff;
+}
+
+.category-yellow {
+  background-color: var(--category-yellow);
+  color: #000;
+}
+
+.category-blue {
+  background-color: var(--category-blue);
+  color: #fff;
+}
+
+.category-green {
+  background-color: var(--category-green);
+  color: #fff;
 }
 
 .category-tab.active {

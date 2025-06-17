@@ -8,6 +8,9 @@ function CategorySelection() {
   const { selectedCategories, toggleCategory } = useUserPreferences();
   const [animatedCategories, setAnimatedCategories] = useState([]);
 
+  const colorClasses = ['category-red', 'category-yellow', 'category-blue', 'category-green'];
+  const getColorClass = (id) => colorClasses[selectedCategories.indexOf(id) % colorClasses.length];
+
   // Add animation effect when categories are selected/deselected
   useEffect(() => {
     setAnimatedCategories(selectedCategories);
@@ -25,7 +28,7 @@ function CategorySelection() {
         {data.categories.map(category => (
           <div 
             key={category.id}
-            className={`category-item ${selectedCategories.includes(category.id) ? 'selected' : ''} 
+            className={`category-item ${getColorClass(category.id)} ${selectedCategories.includes(category.id) ? 'selected' : ''} 
                        ${animatedCategories.includes(category.id) ? 'animate' : ''}`}
             onClick={() => toggleCategory(category.id)}
           >
