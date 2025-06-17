@@ -3,6 +3,7 @@ const GNewsApiService = require('./gnewsApiService');
 const GuardianApiService = require('./guardianApiService');
 const config = require('../config/config');
 const { CATEGORIES, LOCATIONS } = require('../constants');
+const sampleArticles = require('../data/sampleArticles');
 
 /**
  * Manager for handling multiple news API services with fallback
@@ -32,20 +33,29 @@ class NewsServiceManager {
    * Check which services are available (have valid API keys)
    */
   async checkServicesAvailability() {
-    const availabilityChecks = Object.entries(this.services).map(async ([name, service]) => {
+    for (const [name, service] of Object.entries(this.services)) {
+      const apiKey = config.newsApis[name]?.apiKey;
+
+      if (!apiKey) {
+        this.availableServices[name] = false;
+        continue;
+      }
+
+      // Assume the service is available if an API key exists
+      this.availableServices[name] = true;
+
       try {
         const isAvailable = await service.isAvailable();
         this.availableServices[name] = isAvailable;
         console.log(`[NewsServiceManager] ${name} availability: ${isAvailable}`);
-        return { name, isAvailable };
       } catch (error) {
-        console.error(`[NewsServiceManager] Error checking ${name} availability:`, error.message);
-        this.availableServices[name] = false;
-        return { name, isAvailable: false };
+        // Network checks might fail in restricted environments
+        // so log the error but keep the service enabled
+        console.warn(
+          `[NewsServiceManager] Could not verify ${name} availability: ${error.message}`
+        );
       }
-    });
-    
-    await Promise.all(availabilityChecks);
+    }
   }
 
   /**
@@ -55,7 +65,11 @@ class NewsServiceManager {
    */
   getAvailableServices(preferredServices = null) {
     const serviceOrder = preferredServices || this.serviceOrder;
-    return serviceOrder.filter(name => this.availableServices[name]);
+
+    const available = serviceOrder.filter(name => this.availableServices[name]);
+
+    // If no services were marked available, try them all in order
+    return available.length > 0 ? available : serviceOrder;
   }
 
   /**
@@ -96,10 +110,15 @@ class NewsServiceManager {
     
     // Deduplicate articles by URL
     const uniqueArticles = this.deduplicateArticles(articles);
-    
+
     // Limit to the requested number
-    const limitedArticles = uniqueArticles.slice(0, limit);
-    
+    let limitedArticles = uniqueArticles.slice(0, limit);
+
+    if (limitedArticles.length === 0) {
+      // Fallback to local sample data when no articles are retrieved
+      limitedArticles = sampleArticles.slice(0, limit);
+    }
+
     return {
       articles: limitedArticles,
       errors: errors.length > 0 ? errors : null,
@@ -145,10 +164,15 @@ class NewsServiceManager {
     
     // Deduplicate articles by URL
     const uniqueArticles = this.deduplicateArticles(articles);
-    
+
     // Limit to the requested number
-    const limitedArticles = uniqueArticles.slice(0, limit);
-    
+    let limitedArticles = uniqueArticles.slice(0, limit);
+
+    if (limitedArticles.length === 0) {
+      // Fallback to local sample data when no articles are retrieved
+      limitedArticles = sampleArticles.slice(0, limit);
+    }
+
     return {
       articles: limitedArticles,
       errors: errors.length > 0 ? errors : null,
@@ -193,10 +217,15 @@ class NewsServiceManager {
     
     // Deduplicate articles by URL
     const uniqueArticles = this.deduplicateArticles(articles);
-    
+
     // Limit to the requested number
-    const limitedArticles = uniqueArticles.slice(0, limit);
-    
+    let limitedArticles = uniqueArticles.slice(0, limit);
+
+    if (limitedArticles.length === 0) {
+      // Fallback to local sample data when no articles are retrieved
+      limitedArticles = sampleArticles.slice(0, limit);
+    }
+
     return {
       articles: limitedArticles,
       errors: errors.length > 0 ? errors : null,
