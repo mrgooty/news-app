@@ -4,6 +4,7 @@ const cors = require('cors');
 const { ApolloServer } = require('@apollo/server');
 const { expressMiddleware } = require('@apollo/server/express4');
 const { ApolloServerPluginDrainHttpServer } = require('@apollo/server/plugin/drainHttpServer');
+const cookieSession = require('cookie-session');
 const { typeDefs } = require('./graphql/schema');
 const { resolvers } = require('./graphql/resolvers');
 const BertAnalyzer = require('./ai/bertAnalyzer');
@@ -16,6 +17,12 @@ async function startServer() {
   // Create Express app and HTTP server
   const app = express();
   const httpServer = http.createServer(app);
+
+  app.use(cookieSession({
+    name: 'session',
+    keys: [process.env.SESSION_SECRET || 'keyboard cat'],
+    maxAge: 24 * 60 * 60 * 1000,
+  }));
 
   // Create Apollo Server
   const server = new ApolloServer({
@@ -46,12 +53,10 @@ async function startServer() {
     cors(),
     express.json(),
     expressMiddleware(server, {
-      context: async ({ req }) => {
-        // You can add authentication and other context here
-        return { 
-          // Add any context values needed by resolvers
-        };
-      },
+      context: async ({ req }) => ({
+        prefs: req.session?.prefs || null,
+        setPrefs: (p) => { req.session.prefs = p }
+      })
     })
   );
 

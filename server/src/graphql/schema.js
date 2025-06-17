@@ -42,6 +42,11 @@ const typeDefs = `#graphql
     code: String!
   }
 
+  type Prefs {
+    categories: [String!]!
+    locations: [String!]!
+  }
+
   # Error type for handling API failures
   type ApiError {
     source: String!
@@ -80,11 +85,17 @@ const typeDefs = `#graphql
     
     # Get top stories across multiple categories
     topStoriesAcrossCategories(categories: [String], limit: Int, location: String, sources: [String]): NewsResponse!
+    prefs: Prefs
+  }
+
+  type Mutation {
+    setPrefs(categories: [String!]!, locations: [String!]!): Prefs
   }
 
   # Root schema
   schema {
     query: Query
+    mutation: Mutation
   }
 `;
 

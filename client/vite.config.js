@@ -12,7 +12,8 @@ export default defineConfig({
       include: [
         'src/components/NewsCard.jsx',
         'src/components/CategoryList.jsx',
-        'src/context/UserPreferencesContext.jsx'
+        'src/context/UserPreferencesContext.jsx',
+        'src/hooks/usePrefs.ts'
       ]
     }
   }
