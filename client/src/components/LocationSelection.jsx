@@ -9,6 +9,9 @@ function LocationSelection() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const colorClasses = ['category-red', 'category-yellow', 'category-blue', 'category-green'];
+  const getColorClass = (id) => colorClasses[selectedCategories.indexOf(id) % colorClasses.length];
+
   // Handle no selected categories
   if (selectedCategories.length === 0) {
     return (
@@ -42,9 +45,9 @@ function LocationSelection() {
           const hasLocation = categoryLocationPairs[categoryId];
           
           return (
-            <div 
+            <div
               key={categoryId}
-              className={`category-tab ${activeCategory === categoryId ? 'active' : ''} ${hasLocation ? 'has-location' : ''}`}
+              className={`category-tab ${getColorClass(categoryId)} ${activeCategory === categoryId ? 'active' : ''} ${hasLocation ? 'has-location' : ''}`}
               onClick={() => setActiveCategory(categoryId)}
             >
               <span className="tab-name">{categoryName}</span>
