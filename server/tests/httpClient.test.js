@@ -56,4 +56,12 @@ describe('HttpClient', () => {
     client.handleError(error, '/x');
     expect(console.error).toHaveBeenCalled();
   });
+
+  test("get handles request errors", async () => {
+    const client = new HttpClient("newsapi");
+    mockAxios.get.mockRejectedValue({ request: "err" });
+    console.error = jest.fn();
+    await expect(client.get("/err")).rejects.toBeDefined();
+    expect(console.error).toHaveBeenCalled();
+  });
 });

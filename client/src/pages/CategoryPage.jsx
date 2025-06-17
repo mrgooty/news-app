@@ -1,22 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
-import { gql } from '@apollo/client';
 import NewsGrid from '../components/NewsGrid';
-
-// GraphQL query to fetch articles by category
-const GET_ARTICLES_BY_CATEGORY = gql`
-  query GetArticlesByCategory($category: String!, $limit: Int) {
-    articlesByCategory(category: $category, limit: $limit) {
-      id
-      title
-      description
-      imageUrl
-      source
-      publishedAt
-      url
-    }
-  }
-`;
+import { GET_ARTICLES_BY_CATEGORY } from '../graphql/queries';
 
 function CategoryPage() {
   const { categoryId } = useParams();
@@ -30,12 +15,26 @@ function CategoryPage() {
   if (loading) return <div className="loading">Loading articles...</div>;
   if (error) return <div className="error">Error loading articles: {error.message}</div>;
 
+  const articles = data?.articlesByCategory?.articles || [];
+  const errors = data?.articlesByCategory?.errors || [];
+
   return (
     <div className="category-page">
       <h1>{categoryName} News</h1>
-      
-      {data.articlesByCategory.length > 0 ? (
-        <NewsGrid articles={data.articlesByCategory} />
+
+      {errors.length > 0 && (
+        <div className="api-errors">
+          <p>Some sources failed to load:</p>
+          <ul>
+            {errors.map((e, i) => (
+              <li key={i}>{e.source}: {e.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {articles.length > 0 ? (
+        <NewsGrid articles={articles} />
       ) : (
         <div className="no-articles">No articles found for this category.</div>
       )}

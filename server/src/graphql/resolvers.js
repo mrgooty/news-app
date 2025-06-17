@@ -1,5 +1,7 @@
 const NewsServiceManager = require('../services/newsServiceManager');
 const NewsAggregator = require('../ai/newsAggregator');
+const createLogger = require("../utils/logger");
+const log = createLogger("Resolvers");
 
 // Initialize the news service manager
 const newsServiceManager = new NewsServiceManager();
@@ -26,7 +28,7 @@ const resolvers = {
     
     // Get news articles by category
     articlesByCategory: async (_, { category, location, limit = 10, sources }) => {
-      console.log(`Fetching articles for category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
+      log(`Fetching articles for category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
       
       try {
         const result = await newsServiceManager.getArticlesByCategory(category, location, limit * 2, sources);
@@ -62,7 +64,7 @@ const resolvers = {
     
     // Get a specific article by ID
     article: async (_, { id }) => {
-      console.log(`Fetching article with ID: ${id}`);
+      log(`Fetching article with ID: ${id}`);
       
       // This is a placeholder. In a real implementation, we would need to store
       // articles in a database or cache to retrieve them by ID.
@@ -72,7 +74,7 @@ const resolvers = {
     
     // Search for articles
     searchArticles: async (_, { query, category, location, limit = 10, sources }) => {
-      console.log(`Searching for articles with query: ${query}, category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
+      log(`Searching for articles with query: ${query}, category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
       
       try {
         const result = await newsServiceManager.searchArticles(query, category, location, limit * 2, sources);
@@ -108,7 +110,7 @@ const resolvers = {
     
     // Get top headlines
     topHeadlines: async (_, { category, location, limit = 10, sources }) => {
-      console.log(`Fetching top headlines with category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
+      log(`Fetching top headlines with category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
       
       try {
         const result = await newsServiceManager.getTopHeadlines(category, location, limit * 2, sources);
@@ -144,7 +146,7 @@ const resolvers = {
     
     // NEW RESOLVER: Get top stories across multiple categories
     topStoriesAcrossCategories: async (_, { categories = ['general'], limit = 15, location, sources }) => {
-      console.log(`Fetching top stories across categories: ${categories}, limit: ${limit}, location: ${location}, sources: ${sources}`);
+      log(`Fetching top stories across categories: ${categories}, limit: ${limit}, location: ${location}, sources: ${sources}`);
       
       try {
         // Fetch articles for each category

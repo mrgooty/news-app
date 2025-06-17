@@ -104,6 +104,15 @@ The client will be available on `http://localhost:5173` and the GraphQL server o
 - Clean and responsive user interface
 - Color-coded category tabs in the preferences flow for a design similar to Apple News
 
+## Data Flow & Logging
+
+1. **Client Interaction** – React components trigger GraphQL queries on button clicks using Apollo Client.
+2. **GraphQL Layer** – Resolvers log each request via a shared logger and delegate to `NewsServiceManager`.
+3. **Service Manager** – Coordinates the configured news services, logging which service is used and aggregating results with fallbacks.
+4. **HTTP Client** – Handles API calls with caching and rate limiting while logging every request.
+
+Logs prefixed with component names make it easy to trace each step from the UI to external APIs.
+
 ## License
 
 ISC
