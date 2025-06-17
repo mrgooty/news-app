@@ -1,4 +1,4 @@
-const { createGraph, StateGraph } = require('@langchain/langgraph');
+const { StateGraph } = require('@langchain/langgraph');
 const NewsProcessor = require('./newsProcessor');
 
 /**
@@ -23,7 +23,11 @@ class NewsOrchestrator {
     };
 
     // Create the graph
-    const builder = createGraph(graphState);
+    const builder = new StateGraph({ channels: {
+      article: {},
+      processedData: {},
+      error: {},
+    }});
 
     // Define the nodes
     builder.addNode("summarize", async (state) => {
@@ -188,7 +192,11 @@ class NewsOrchestrator {
     };
 
     // Create the graph
-    const builder = createGraph(graphState);
+    const builder = new StateGraph({ channels: {
+      articles: {},
+      processedArticles: {},
+      errors: {},
+    }});
 
     // Define the nodes
     builder.addNode("processArticles", async (state) => {
