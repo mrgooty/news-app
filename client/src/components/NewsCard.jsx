@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ANALYSIS_API_URL } from '../constants';
 
 function NewsCard({ article }) {
   const [expanded, setExpanded] = useState(false);
@@ -29,7 +30,7 @@ function NewsCard({ article }) {
   useEffect(() => {
     if (showSummary && (!summary || !sentiment) && !loading) {
       setLoading(true);
-      fetch('http://localhost:4000/api/analyze', {
+      fetch(ANALYSIS_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: article.title, content: article.content || article.description })

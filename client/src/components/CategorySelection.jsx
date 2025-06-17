@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_CATEGORIES } from '../graphql/queries';
 import { useUserPreferences } from '../context/UserPreferencesContext';
+import { CATEGORY_COLOR_CLASSES } from '../constants';
 
 function CategorySelection() {
   const { loading, error, data } = useQuery(GET_CATEGORIES);
   const { selectedCategories, toggleCategory } = useUserPreferences();
   const [animatedCategories, setAnimatedCategories] = useState([]);
 
-  const colorClasses = ['category-red', 'category-yellow', 'category-blue', 'category-green'];
-  const getColorClass = (id) => colorClasses[selectedCategories.indexOf(id) % colorClasses.length];
+  const getColorClass = (id) => CATEGORY_COLOR_CLASSES[selectedCategories.indexOf(id) % CATEGORY_COLOR_CLASSES.length];
 
   // Add animation effect when categories are selected/deselected
   useEffect(() => {
