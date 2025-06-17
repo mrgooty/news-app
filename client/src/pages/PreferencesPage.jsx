@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import CategorySelection from '../components/CategorySelection';
 import LocationSelection from '../components/LocationSelection';
 import { useUserPreferences } from '../context/UserPreferencesContext';
+import { usePrefs } from '../hooks/usePrefs';
 
 function PreferencesPage() {
   const [activeStep, setActiveStep] = useState('categories'); // 'categories' or 'locations'
   const { selectedCategories, categoryLocationPairs, clearPreferences } = useUserPreferences();
   const navigate = useNavigate();
+  const { save, clear } = usePrefs();
 
   // Check if all selected categories have locations paired
   const allCategoriesHaveLocations = selectedCategories.every(
@@ -16,8 +18,10 @@ function PreferencesPage() {
 
   // Handle save and navigate to home
   const handleSavePreferences = () => {
-    navigate('/');
-  };
+    const locs = Array.from(new Set(Object.values(categoryLocationPairs)))
+    save({ categories: selectedCategories, locations: locs })
+    navigate('/')
+  }
 
   return (
     <div className="preferences-page">
@@ -55,9 +59,9 @@ function PreferencesPage() {
       <div className="preferences-actions">
         {activeStep === 'categories' ? (
           <>
-            <button 
-              className="secondary-button" 
-              onClick={clearPreferences}
+            <button
+              className="secondary-button"
+              onClick={() => { clearPreferences(); clear(); }}
               disabled={selectedCategories.length === 0}
             >
               Clear All

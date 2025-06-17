@@ -175,7 +175,19 @@ const resolvers = {
         };
       }
     },
+
+    prefs: async (_, __, { prefs }) => {
+      return prefs;
+    }
   },
+
+  Mutation: {
+    setPrefs: async (_, { categories, locations }, { setPrefs }) => {
+      const p = { categories, locations };
+      setPrefs(p);
+      return p;
+    }
+  }
 };
 
 module.exports = { resolvers };
