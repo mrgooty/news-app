@@ -67,6 +67,7 @@ news-app/
    - Copy `server/.env.template` to `server/.env`.
    - Add your API keys for the news services **and** set `OPENAI_API_KEY` with your ChatGPT key.
    - (Optional) copy `client/.env.template` to `client/.env` to override the GraphQL URL.
+   - The server integrates [NewsAPI.org](https://newsapi.org/) via `newsApiService`. The older `newsService` file is deprecated and not used.
 
 ### Running the Application
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_LOCATIONS } from '../graphql/queries';
 import { useUserPreferences } from '../context/UserPreferencesContext';
+import { CATEGORY_COLOR_CLASSES } from '../constants';
 
 function LocationSelection() {
   const { loading, error, data } = useQuery(GET_LOCATIONS);
@@ -9,8 +10,7 @@ function LocationSelection() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const colorClasses = ['category-red', 'category-yellow', 'category-blue', 'category-green'];
-  const getColorClass = (id) => colorClasses[selectedCategories.indexOf(id) % colorClasses.length];
+  const getColorClass = (id) => CATEGORY_COLOR_CLASSES[selectedCategories.indexOf(id) % CATEGORY_COLOR_CLASSES.length];
 
   // Handle no selected categories
   if (selectedCategories.length === 0) {
