@@ -22,15 +22,6 @@ function Footer() {
           </ul>
         </div>
         
-        <div className="footer-section">
-          <h3 className="footer-title">Features</h3>
-          <ul className="footer-links">
-            <li>AI-Powered Aggregation</li>
-            <li>Category Selection</li>
-            <li>Location Pairing</li>
-            <li>Multiple News Sources</li>
-          </ul>
-        </div>
       </div>
       
       <div className="footer-bottom">
