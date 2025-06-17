@@ -34,4 +34,17 @@ describe('NewsCard', () => {
     fireEvent.click(button);
     await waitFor(() => expect(button.textContent).toMatch(/Show less/));
   });
+
+  it('fetches summary when summarize clicked', async () => {
+    render(<NewsCard article={article} />);
+    // expand first
+    const expandButton = screen.getAllByRole('button', { name: /Show more/i })[0];
+    fireEvent.click(expandButton);
+    await screen.findAllByRole('button', { name: /Show less/i });
+    const summarizeButton = screen.getAllByRole('button', { name: /Summarize/i })[0];
+    fireEvent.click(summarizeButton);
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByText('sum')).toBeInTheDocument());
+  });
 });

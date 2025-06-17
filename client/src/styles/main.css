@@ -263,6 +263,23 @@ body {
   font-weight: 500;
 }
 
+.summarize-button {
+  background: none;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+
+.summarize-button:hover {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
 .news-entities {
   padding: 0 1rem 1rem;
   border-top: 1px solid var(--border-color);

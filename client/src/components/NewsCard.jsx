@@ -5,6 +5,7 @@ function NewsCard({ article }) {
   const [summary, setSummary] = useState(article.summary);
   const [sentiment, setSentiment] = useState(article.sentiment);
   const [loading, setLoading] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   
   // Format the published date
   const formatDate = (dateString) => {
@@ -26,7 +27,7 @@ function NewsCard({ article }) {
   };
 
   useEffect(() => {
-    if (expanded && (!summary || !sentiment) && !loading) {
+    if (showSummary && (!summary || !sentiment) && !loading) {
       setLoading(true);
       fetch('http://localhost:4000/api/analyze', {
         method: 'POST',
@@ -41,7 +42,7 @@ function NewsCard({ article }) {
         .catch(err => console.error('Error fetching analysis', err))
         .finally(() => setLoading(false));
     }
-  }, [expanded]);
+  }, [showSummary]);
 
   return (
     <div className={`news-card ${expanded ? 'expanded' : ''}`}>
@@ -72,11 +73,11 @@ function NewsCard({ article }) {
         </h3>
 
         <p className="news-description">
-          {expanded ? summary || article.description : article.description?.substring(0, 150)}
+          {expanded ? article.description : article.description?.substring(0, 150)}
           {!expanded && article.description && article.description.length > 150 && '...'}
         </p>
 
-        {(summary || (article.description && article.description.length > 150)) && (
+        {(article.description && article.description.length > 150) && (
           <button
             className="expand-button"
             onClick={() => setExpanded(!expanded)}
@@ -85,8 +86,20 @@ function NewsCard({ article }) {
           </button>
         )}
 
-        {expanded && loading && <div className="loading">Analyzing...</div>}
-        {expanded && summary && (
+        {expanded && (
+          <button
+            className="summarize-button"
+            onClick={() => setShowSummary(prev => !prev)}
+          >
+            {showSummary ? 'Hide Summary' : 'Summarize'}
+          </button>
+        )}
+
+        {showSummary && loading && (
+          <div className="loading">Fetching from LangChain...</div>
+        )}
+
+        {showSummary && summary && (
           <div className="analysis-panel">
             <h4>Summary</h4>
             <p>{summary}</p>

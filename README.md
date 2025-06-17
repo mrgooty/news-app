@@ -84,6 +84,7 @@ news-app/
 
 3. Open your browser and navigate to `http://localhost:5173` (or the port shown in your terminal)
 
+
 ### Docker Compose
 
 You can run the entire stack with Docker:
