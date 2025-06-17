@@ -14,15 +14,25 @@ const TextUtils = require('./textUtils');
  */
 class NewsAggregator {
   constructor() {
-    this.model = new ChatOpenAI({
-      openAIApiKey: config.ai.openaiApiKey,
-      modelName: config.ai.model,
-      temperature: 0.1,
-    });
-    
-    this.newsProcessor = new NewsProcessor();
-    this.newsOrchestrator = new NewsOrchestrator();
-    this.textUtils = new TextUtils();
+    this.aiEnabled = Boolean(config.ai.openaiApiKey);
+    if (this.aiEnabled) {
+      this.model = new ChatOpenAI({
+        openAIApiKey: config.ai.openaiApiKey,
+        modelName: config.ai.model,
+        temperature: 0.1,
+      });
+
+      this.newsProcessor = new NewsProcessor();
+      this.newsOrchestrator = new NewsOrchestrator();
+      this.textUtils = new TextUtils();
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn('[NewsAggregator] OPENAI_API_KEY not set - AI features disabled');
+      this.model = null;
+      this.newsProcessor = null;
+      this.newsOrchestrator = null;
+      this.textUtils = null;
+    }
     
     // Initialize cache for processed articles
     this.cache = new CacheManager({
@@ -37,6 +47,9 @@ class NewsAggregator {
    * @returns {Promise<Object>} - The processed article
    */
   async processArticle(article) {
+    if (!this.aiEnabled) {
+      return article;
+    }
     // Generate a cache key based on article URL or title
     const cacheKey = article.url || `title:${article.title}`;
     
@@ -54,6 +67,10 @@ class NewsAggregator {
   async processArticles(articles) {
     if (!articles || articles.length === 0) {
       return [];
+    }
+
+    if (!this.aiEnabled) {
+      return articles;
     }
     
     // Check which articles are already in cache
@@ -106,9 +123,13 @@ class NewsAggregator {
       excludeSentiments = [],
       requireEntities = [],
     } = options;
-    
+
     // Process articles if they haven't been processed yet
     const processedArticles = await this.processArticles(articles);
+
+    if (!this.aiEnabled) {
+      return processedArticles;
+    }
     
     // Apply filters
     return processedArticles.filter(article => {
@@ -155,9 +176,13 @@ class NewsAggregator {
       recencyWeight = 0.3,
       scoreWeight = 0.7,
     } = options;
-    
+
     // Process articles if they haven't been processed yet
     const processedArticles = await this.processArticles(articles);
+
+    if (!this.aiEnabled) {
+      return processedArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    }
     
     // Calculate recency score (0-10) based on publishedAt date
     const now = new Date();
@@ -209,6 +234,20 @@ class NewsAggregator {
    * @returns {Promise<Array>} - Top stories across categories
    */
   async getTopStories(articlesByCategory, limit = 15) {
+    if (!this.aiEnabled) {
+      const all = Object.values(articlesByCategory).flat();
+      const seen = new Set();
+      const unique = [];
+      for (const art of all) {
+        const key = art.url || art.title;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(art);
+        }
+      }
+      unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+      return unique.slice(0, limit);
+    }
     // Process all articles by category
     const processedByCategory = {};
     const processingPromises = [];
@@ -239,6 +278,10 @@ class NewsAggregator {
    */
   async ensureTopicDiversity(articles) {
     if (!articles || articles.length <= 1) {
+      return articles;
+    }
+
+    if (!this.aiEnabled || !this.textUtils) {
       return articles;
     }
     

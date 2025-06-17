@@ -22,8 +22,10 @@ class NewsServiceManager {
     // Default service order for fallback
     this.serviceOrder = ['newsapi', 'gnews', 'guardian'];
     
-    // Initialize service availability
-    this.checkServicesAvailability();
+    // Initialize service availability unless running tests
+    if (process.env.NODE_ENV !== 'test') {
+      this.checkServicesAvailability();
+    }
   }
 
   /**

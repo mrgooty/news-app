@@ -176,9 +176,7 @@ const resolvers = {
       }
     },
 
-    prefs: async (_, __, { prefs }) => {
-      return prefs;
-    }
+    prefs: (_, __, { prefs }) => prefs
   },
 
   Mutation: {
