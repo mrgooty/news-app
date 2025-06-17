@@ -1,23 +1,8 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLazyQuery } from '@apollo/client';
-import { gql } from '@apollo/client';
 import NewsGrid from '../components/NewsGrid';
-
-// GraphQL query to search articles
-const SEARCH_ARTICLES = gql`
-  query SearchArticles($query: String!, $limit: Int) {
-    searchArticles(query: $query, limit: $limit) {
-      id
-      title
-      description
-      imageUrl
-      source
-      publishedAt
-      url
-    }
-  }
-`;
+import { SEARCH_ARTICLES } from '../graphql/queries';
 
 function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,11 +44,21 @@ function SearchPage() {
       {loading && <div className="loading">Searching...</div>}
       {error && <div className="error">Error: {error.message}</div>}
       
-      {data && data.searchArticles && (
+      {data && (
         <>
           <h2>Search Results for "{initialQuery}"</h2>
-          {data.searchArticles.length > 0 ? (
-            <NewsGrid articles={data.searchArticles} />
+          {data.searchArticles.errors && data.searchArticles.errors.length > 0 && (
+            <div className="api-errors">
+              <p>Some sources failed to load:</p>
+              <ul>
+                {data.searchArticles.errors.map((e, i) => (
+                  <li key={i}>{e.source}: {e.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {data.searchArticles.articles.length > 0 ? (
+            <NewsGrid articles={data.searchArticles.articles} />
           ) : (
             <div className="no-results">No articles found for your search.</div>
           )}

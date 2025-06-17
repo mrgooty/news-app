@@ -1,6 +1,8 @@
 const NewsApiService = require('./newsApiService');
 const GNewsApiService = require('./gnewsApiService');
 const GuardianApiService = require('./guardianApiService');
+const createLogger = require("../utils/logger");
+const log = createLogger("NewsServiceManager");
 const config = require('../config/config');
 const { CATEGORIES, LOCATIONS } = require('../constants');
 const sampleArticles = require('../data/sampleArticles');
@@ -47,11 +49,11 @@ class NewsServiceManager {
       try {
         const isAvailable = await service.isAvailable();
         this.availableServices[name] = isAvailable;
-        console.log(`[NewsServiceManager] ${name} availability: ${isAvailable}`);
+        log(`NewsServiceManager ${name} availability: ${isAvailable}`);
       } catch (error) {
         // Network checks might fail in restricted environments
         // so log the error but keep the service enabled
-        console.warn(
+        log(
           `[NewsServiceManager] Could not verify ${name} availability: ${error.message}`
         );
       }

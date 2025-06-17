@@ -49,4 +49,40 @@ describe('NewsServiceManager utility methods', () => {
     const res = await manager.getTopHeadlines('tech', 'us', 2);
     expect(res.articles).toHaveLength(2);
   });
+
+  test('fallbacks to sample data', async () => {
+    const svc = { getArticlesByCategory: jest.fn().mockResolvedValue([]) };
+    manager.services = { newsapi: svc };
+    manager.availableServices = { newsapi: true };
+    const res = await manager.getArticlesByCategory('tech', 'us', 1);
+    expect(res.articles.length).toBeGreaterThan(0);
+  });
+
+  test('searchArticles merges articles', async () => {
+    const svc = { searchArticles: jest.fn().mockResolvedValue([article('u1'), article('u2')]) };
+    manager.services = { newsapi: svc };
+    manager.availableServices = { newsapi: true };
+    const res = await manager.searchArticles('q', null, null, 2);
+    expect(res.articles).toHaveLength(2);
+  });
+
+  test('getTopHeadlines falls back to sample', async () => {
+    const svc = { getTopHeadlines: jest.fn().mockResolvedValue([]) };
+    manager.services = { newsapi: svc };
+    manager.availableServices = { newsapi: true };
+    const res = await manager.getTopHeadlines('tech', 'us', 1);
+    expect(res.articles.length).toBeGreaterThan(0);
+  });
+
+  test('checkServicesAvailability updates flags', async () => {
+    const svc1 = { isAvailable: jest.fn().mockResolvedValue(true) };
+    const svc2 = { isAvailable: jest.fn().mockResolvedValue(false) };
+    manager.services = { a: svc1, b: svc2 };
+    const cfg = require('../src/config/config');
+    cfg.newsApis.a = { apiKey: 'k' };
+    cfg.newsApis.b = { apiKey: 'k' };
+    await manager.checkServicesAvailability();
+    expect(manager.availableServices.a).toBe(true);
+    expect(manager.availableServices.b).toBe(false);
+  });
 });

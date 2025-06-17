@@ -1,4 +1,5 @@
 const axios = require('axios');
+const createLogger = require("./logger");
 const config = require('../config/config');
 
 // Simple in-memory cache
@@ -7,6 +8,8 @@ const cache = new Map();
 /**
  * HTTP client with caching, rate limiting, and error handling
  */
+const log=createLogger("HttpClient");
+
 class HttpClient {
   /**
    * Create a new HTTP client for a specific news API
@@ -70,7 +73,7 @@ class HttpClient {
     
     // Return cached response if available and not expired
     if (cachedResponse && cachedResponse.timestamp > Date.now() - config.cache.ttl) {
-      console.log(`[${this.apiName}] Cache hit for ${endpoint}`);
+      log(`[${this.apiName}] Cache hit for ${endpoint}`);
       return cachedResponse.data;
     }
     
@@ -110,7 +113,7 @@ class HttpClient {
         requestConfig.params[apiKeyParam] = this.apiConfig.apiKey;
       }
       
-      console.log(`[${this.apiName}] Making request to ${endpoint}`);
+      log(`[${this.apiName}] Making request to ${endpoint}`);
       const response = await this.client.get(endpoint, requestConfig);
       
       // Cache the successful response
