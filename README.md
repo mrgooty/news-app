@@ -64,9 +64,9 @@ news-app/
    ```
 
 4. Set up environment variables:
-   - Copy the `.env.template` file in the server directory to `.env`
-   - Add your API keys for the news services
-   - (Optional) copy `client/.env.template` to `client/.env` to override the GraphQL URL
+   - Copy `server/.env.template` to `server/.env`.
+   - Add your API keys for the news services **and** set `OPENAI_API_KEY` with your ChatGPT key.
+   - (Optional) copy `client/.env.template` to `client/.env` to override the GraphQL URL.
 
 ### Running the Application
 
