@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faThumbsUp, faThumbsDown, faMeh, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 import '../styles/news-views.css'; 
 
 const NewsDetailModal = ({ article, onClose }) => {
-  const [summary, setSummary] = useState('');
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
-  const [summaryError, setSummaryError] = useState('');
+  const [analysis, setAnalysis] = useState(null);
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
+  const [analysisError, setAnalysisError] = useState('');
 
   // Close modal on 'Escape' key press for accessibility
   useEffect(() => {
@@ -22,9 +24,9 @@ const NewsDetailModal = ({ article, onClose }) => {
 
   // Reset state when a new article is selected
   useEffect(() => {
-    setSummary('');
-    setSummaryError('');
-    setIsLoadingSummary(false);
+    setAnalysis(null);
+    setAnalysisError('');
+    setIsLoadingAnalysis(false);
   }, [article]);
 
   if (!article) {
@@ -36,17 +38,17 @@ const NewsDetailModal = ({ article, onClose }) => {
     e.stopPropagation();
   };
 
-  const handleSummarize = async () => {
+  const handleAnalyze = async () => {
     if (!article.url) {
-      setSummaryError('Article URL not available to summarize.');
+      setAnalysisError('Article URL not available to analyze.');
       return;
     }
 
-    setIsLoadingSummary(true);
-    setSummary('');
-    setSummaryError('');
+    setIsLoadingAnalysis(true);
+    setAnalysis(null);
+    setAnalysisError('');
     try {
-      const response = await fetch('/api/summarize', {
+      const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,23 +57,39 @@ const NewsDetailModal = ({ article, onClose }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to retrieve summary.' }));
+        const errorData = await response.json().catch(() => ({ error: 'Failed to retrieve analysis.' }));
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      setSummary(data.summary);
+      setAnalysis(data);
     } catch (error) {
-      console.error('Error fetching summary:', error);
-      setSummaryError(error.message || 'An unknown error occurred.');
+      console.error('Error fetching analysis:', error);
+      setAnalysisError(error.message || 'An unknown error occurred.');
     } finally {
-      setIsLoadingSummary(false);
+      setIsLoadingAnalysis(false);
     }
   };
   
+  const getSentimentIcon = (sentiment) => {
+    const label = sentiment?.label?.toUpperCase();
+    switch (label) {
+      case 'POSITIVE':
+        return { icon: faThumbsUp, color: 'var(--success-color)' };
+      case 'NEGATIVE':
+        return { icon: faThumbsDown, color: 'var(--error-color)' };
+      case 'NEUTRAL':
+        return { icon: faMeh, color: 'var(--text-muted-color)' };
+      default:
+        return { icon: faExclamationCircle, color: 'var(--warning-color)' };
+    }
+  };
+
   const publishedDate = article.publishedAt 
     ? new Date(article.publishedAt).toLocaleString() 
     : 'Not available';
+  
+  const sentimentIcon = analysis?.sentiment ? getSentimentIcon(analysis.sentiment) : null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -105,17 +123,29 @@ const NewsDetailModal = ({ article, onClose }) => {
           >
             Read Full Article
           </a>
-          <button onClick={handleSummarize} disabled={isLoadingSummary} className="summarize-button">
-            {isLoadingSummary ? 'Analyzing...' : 'Summarize'}
+          <button onClick={handleAnalyze} disabled={isLoadingAnalysis} className="summarize-button">
+            {isLoadingAnalysis ? 'Analyzing...' : 'Analyze Article'}
           </button>
         </div>
 
-        {(summary || isLoadingSummary || summaryError) && (
+        {(analysis || isLoadingAnalysis || analysisError) && (
           <div className="analysis-result">
-            <h3>Summary</h3>
-            {isLoadingSummary && <p>Loading summary...</p>}
-            {summaryError && <div className="error-message analysis-error">{summaryError}</div>}
-            {summary && <p>{summary}</p>}
+            <h3>Analysis</h3>
+            {isLoadingAnalysis && <p>Loading analysis...</p>}
+            {analysisError && <div className="error-message analysis-error">{analysisError}</div>}
+            {analysis && (
+              <>
+                {sentimentIcon && (
+                  <div className="sentiment-display">
+                    <FontAwesomeIcon icon={sentimentIcon.icon} style={{ color: sentimentIcon.color }} />
+                    <strong style={{ color: sentimentIcon.color, marginLeft: '8px' }}>
+                      {analysis.sentiment.label}
+                    </strong>
+                  </div>
+                )}
+                <p>{analysis.summary}</p>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@ const router = express.Router();
 const { fetchNewsByCategory, searchNewsByKeyword } = require('../services/newsApiAggregator');
 const config =require('../config/config');
 const articleAnalyzerService = require('../ai/articleAnalyzerService');
-const logger = require('../utils/logger');
+const logger = require('../utils/logger')('ApiRoutes');
 
 // Route to get the list of available categories
 router.get('/categories', (req, res) => {
@@ -49,14 +49,14 @@ router.get('/news/search/:keyword', async (req, res) => {
   }
 });
 
-router.post('/summarize', async (req, res) => {
+router.post('/analyze', async (req, res) => {
   const { url } = req.body;
   
   try {
-    const analysis = await articleAnalyzerService.summarizeArticle({ url });
+    const analysis = await articleAnalyzerService.analyzeArticle({ url });
     res.json(analysis);
   } catch (error) {
-    logger.error('Error in /api/summarize route:', error.message);
+    logger('Error in /api/analyze route:', error.message);
 
     // Provide specific client-facing errors
     if (error.message.includes('Invalid URL')) {
