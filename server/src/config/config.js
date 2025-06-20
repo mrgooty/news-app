@@ -1,5 +1,7 @@
+const path = require('path');
+
 // Configuration settings for the server
-require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const config = {
   // Server configuration
@@ -13,22 +15,16 @@ const config = {
     newsapi: {
       baseUrl: 'https://newsapi.org/v2',
       apiKey: process.env.NEWS_API_KEY,
+      keyName: 'apiKey',
       rateLimits: {
         requestsPerDay: 100, // Free tier limit
-        requestsPerSecond: 1,
-      },
-    },
-    newsdata: {
-      baseUrl: 'https://newsdata.io/api/1',
-      apiKey: process.env.NEWSDATA_API_KEY,
-      rateLimits: {
-        requestsPerDay: 200, // Approximate free tier limit
         requestsPerSecond: 1,
       },
     },
     gnews: {
       baseUrl: 'https://gnews.io/api/v4',
       apiKey: process.env.GNEWS_API_KEY,
+      keyName: 'apikey',
       rateLimits: {
         requestsPerDay: 100, // Free tier limit
         requestsPerSecond: 1,
@@ -37,6 +33,7 @@ const config = {
     guardian: {
       baseUrl: 'https://content.guardianapis.com',
       apiKey: process.env.GUARDIAN_API_KEY,
+      keyName: 'api-key',
       rateLimits: {
         requestsPerDay: 500, // Free tier limit
         requestsPerSecond: 1,
@@ -45,43 +42,51 @@ const config = {
     nytimes: {
       baseUrl: 'https://api.nytimes.com/svc',
       apiKey: process.env.NYT_API_KEY,
+      keyName: 'api-key',
       rateLimits: {
         requestsPerDay: 500, // Approximate free tier limit
         requestsPerSecond: 1,
       },
     },
-    mediastack: {
-      baseUrl: 'http://api.mediastack.com/v1',
-      apiKey: process.env.MEDIASTACK_API_KEY,
+    worldnewsapi: {
+      baseUrl: 'https://api.worldnewsapi.com',
+      apiKey: process.env.WORLD_NEWS_API_KEY,
+      keyName: 'api-key',
       rateLimits: {
-        requestsPerMonth: 500, // Free tier limit
+        requestsPerDay: 100, // Placeholder
         requestsPerSecond: 1,
       },
     },
-    newscatcher: {
-      baseUrl: 'https://api.newscatcherapi.com/v2',
-      apiKey: process.env.NEWSCATCHER_API_KEY,
+    weatherstack: {
+      baseUrl: 'http://api.weatherstack.com',
+      apiKey: process.env.WEATHER_API_KEY,
       rateLimits: {
-        requestsPerMonth: 1000, // Free tier limit for personal email
+        requestsPerDay: 250, // Free tier limit
         requestsPerSecond: 1,
       },
     },
-    bing: {
-      baseUrl: 'https://api.bing.microsoft.com/v7.0',
-      apiKey: process.env.BING_NEWS_API_KEY,
-      rateLimits: {
-        requestsPerMonth: 1000, // Free tier limit
-        requestsPerSecond: 3,
-      },
-    },
-    currents: {
-      baseUrl: 'https://api.currentsapi.services/v1',
-      apiKey: process.env.CURRENTS_API_KEY,
-      rateLimits: {
-        requestsPerDay: 600, // Approximate free tier limit
-        requestsPerSecond: 1,
-      },
-    },
+  },
+  
+  // Static application data
+  appData: {
+    categories: [
+      { id: 'business', name: 'Business', description: 'Business and finance news' },
+      { id: 'entertainment', name: 'Entertainment', description: 'Entertainment and celebrity news' },
+      { id: 'general', name: 'General', description: 'General news' },
+      { id: 'health', name: 'Health', description: 'Health and wellness news' },
+      { id: 'science', name: 'Science', description: 'Science and research news' },
+      { id: 'sports', name: 'Sports', description: 'Sports news and updates' },
+      { id: 'technology', name: 'Technology', description: 'Technology news' },
+      { id: 'world', name: 'World', description: 'World news' },
+      { id: 'politics', name: 'Politics', description: 'Political news' },
+    ],
+    locations: [
+      { id: 'us', name: 'United States', code: 'us' },
+      { id: 'gb', name: 'United Kingdom', code: 'gb' },
+      { id: 'ca', name: 'Canada', code: 'ca' },
+      { id: 'au', name: 'Australia', code: 'au' },
+      { id: 'in', name: 'India', code: 'in' },
+    ],
   },
   
   // Cache configuration
@@ -120,13 +125,13 @@ const config = {
     },
     // Feature flags for AI capabilities
     features: {
-      summarization: true,
-      categorization: true,
-      sentimentAnalysis: true,
-      entityExtraction: true,
-      relevanceScoring: true,
-      deduplication: true,
-      fallbackToLocal: true, // Use local models as fallback
+      summarization: false,
+      categorization: false,
+      sentimentAnalysis: false,
+      entityExtraction: false,
+      relevanceScoring: false,
+      deduplication: false,
+      fallbackToLocal: false, // Use local models as fallback
     }
   },
   
@@ -138,72 +143,57 @@ const config = {
       gnews: 'business',
       guardian: 'business',
       nytimes: 'business',
-      newsdata: 'business',
-      mediastack: 'business',
+     
     },
     technology: {
       newsapi: 'technology',
       gnews: 'technology',
       guardian: 'technology',
       nytimes: 'technology',
-      newsdata: 'technology',
-      mediastack: 'technology',
     },
     entertainment: {
       newsapi: 'entertainment',
       gnews: 'entertainment',
       guardian: 'culture',
       nytimes: 'arts',
-      newsdata: 'entertainment',
-      mediastack: 'entertainment',
+     
     },
     sports: {
       newsapi: 'sports',
       gnews: 'sports',
       guardian: 'sport',
       nytimes: 'sports',
-      newsdata: 'sports',
-      mediastack: 'sports',
     },
     science: {
       newsapi: 'science',
       gnews: 'science',
       guardian: 'science',
       nytimes: 'science',
-      newsdata: 'science',
-      mediastack: 'science',
     },
     health: {
       newsapi: 'health',
       gnews: 'health',
       guardian: 'lifeandstyle',
       nytimes: 'health',
-      newsdata: 'health',
-      mediastack: 'health',
     },
     general: {
       newsapi: 'general',
       gnews: 'general',
       guardian: 'news',
       nytimes: 'home',
-      newsdata: 'top',
-      mediastack: 'general',
+      
     },
     world: {
       newsapi: 'general',
       gnews: 'world',
       guardian: 'world',
       nytimes: 'world',
-      newsdata: 'world',
-      mediastack: 'general',
     },
     politics: {
       newsapi: 'general',
       gnews: 'nation',
       guardian: 'politics',
       nytimes: 'politics',
-      newsdata: 'politics',
-      mediastack: 'general',
     },
   },
   
@@ -214,40 +204,34 @@ const config = {
       gnews: 'us',
       guardian: 'us',
       nytimes: 'us',
-      newsdata: 'us',
-      mediastack: 'us',
     },
     gb: {
       newsapi: 'gb',
       gnews: 'gb',
       guardian: 'uk',
       nytimes: 'uk',
-      newsdata: 'gb',
-      mediastack: 'gb',
+     
     },
     ca: {
       newsapi: 'ca',
       gnews: 'ca',
       guardian: 'ca',
       nytimes: 'ca',
-      newsdata: 'ca',
-      mediastack: 'ca',
+      
     },
     au: {
       newsapi: 'au',
       gnews: 'au',
       guardian: 'au',
       nytimes: 'au',
-      newsdata: 'au',
-      mediastack: 'au',
+     
     },
     in: {
       newsapi: 'in',
       gnews: 'in',
       guardian: 'in',
       nytimes: 'in',
-      newsdata: 'in',
-      mediastack: 'in',
+     
     },
   },
 };

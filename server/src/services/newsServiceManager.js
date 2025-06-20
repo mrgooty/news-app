@@ -4,8 +4,6 @@ const GuardianApiService = require('./guardianApiService');
 const createLogger = require("../utils/logger");
 const log = createLogger("NewsServiceManager");
 const config = require('../config/config');
-const { CATEGORIES, LOCATIONS } = require('../constants');
-const sampleArticles = require('../data/sampleArticles');
 
 /**
  * Manager for handling multiple news API services with fallback
@@ -26,8 +24,17 @@ class NewsServiceManager {
     this.serviceOrder = ['newsapi', 'gnews', 'guardian'];
     
     // Initialize service availability unless running tests
+    // if (process.env.NODE_ENV !== 'test') {
+    //   this.checkServicesAvailability();
+    // }
+  }
+
+  /**
+   * Initialize the service manager by checking service availability
+   */
+  async init() {
     if (process.env.NODE_ENV !== 'test') {
-      this.checkServicesAvailability();
+      await this.checkServicesAvailability();
     }
   }
 
@@ -380,19 +387,8 @@ class NewsServiceManager {
    * @returns {Object} - Object with service availability status
    */
   getServiceStatus() {
-    const status = {};
-    
-    for (const [name, available] of Object.entries(this.availableServices)) {
-      const apiKey = config.newsApis[name]?.apiKey;
-      status[name] = {
-        available,
-        hasApiKey: Boolean(apiKey),
-        apiKeyIsPlaceholder: apiKey ? (apiKey.includes('your_') || apiKey.includes('test_')) : false,
-      };
-    }
-    
-    return status;
+    return this.availableServices;
   }
 }
 
-module.exports = NewsServiceManager;
+module.exports = new NewsServiceManager();

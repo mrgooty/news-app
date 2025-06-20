@@ -108,6 +108,7 @@
   border-radius: 4px;
   font-size: 14px;
   color: #202124;
+  background-color: #ffffff;
 }
 
 /* Advanced Section Styles */
@@ -274,6 +275,10 @@
 
 .dark-mode .no-categories-selected {
   background-color: #3d3a2b;
+}
+
+.dark-mode .location-pair p {
+  color: #9aa0a6;
 }
 
 /* Responsive Adjustments */

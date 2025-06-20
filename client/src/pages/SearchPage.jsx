@@ -1,69 +1,89 @@
-import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import { useLazyQuery } from '@apollo/client';
+import { useUserPreferences } from '../hooks/usePrefs';
+import { SEARCH_NEWS } from '../graphql/queries';
 import NewsGrid from '../components/NewsGrid';
-import { SEARCH_ARTICLES } from '../graphql/queries';
+import NewsDetailModal from '../components/NewsDetailModal';
+import '../styles/news-views.css';
+
+function useQueryString() {
+  return new URLSearchParams(useLocation().search);
+}
 
 function SearchPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialQuery = searchParams.get('q') || '';
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const queryString = useQueryString();
+  const { location, isLoaded } = useUserPreferences();
+  const [selectedArticle, setSelectedArticle] = useState(null);
   
-  const [searchArticles, { loading, error, data }] = useLazyQuery(SEARCH_ARTICLES);
-  
-  // Execute search if there's an initial query from URL
-  useState(() => {
-    if (initialQuery) {
-      searchArticles({ variables: { query: initialQuery, limit: 20 } });
-    }
-  }, [initialQuery, searchArticles]);
+  const keyword = queryString.get('q') || '';
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setSearchParams({ q: searchQuery });
-      searchArticles({ variables: { query: searchQuery, limit: 20 } });
+  const [searchNews, { loading, error, data, called }] = useLazyQuery(SEARCH_NEWS, {
+    variables: { keyword, location }
+  });
+
+  useEffect(() => {
+    if (keyword && isLoaded) {
+      searchNews();
     }
+  }, [keyword, isLoaded, searchNews]);
+
+  const handleArticleSelect = (article) => {
+    setSelectedArticle(article);
   };
 
+  const handleCloseModal = () => {
+    setSelectedArticle(null);
+  };
+
+  const renderContent = () => {
+    if (!called && !loading) {
+        return <div className="status-container"><p>Enter a term above to search for news.</p></div>;
+    }
+  
+    if (loading) {
+      return (
+        <div className="status-container">
+          <div className="spinner"></div>
+          <p>Searching for articles about "{keyword}"...</p>
+        </div>
+      );
+    }
+  
+    if (error) {
+      return (
+        <div className="status-container">
+          <p className="error-message">Could not perform search.</p>
+          <p className="error-details">{error.message}</p>
+        </div>
+      );
+    }
+
+    const articles = data?.searchNews || [];
+
+    if (articles.length === 0 && called) {
+      return (
+         <div className="status-container">
+           <p>No articles found for "{keyword}".</p>
+           <Link to="/" className="cta-button">
+             Back to Home
+           </Link>
+         </div>
+      );
+    }
+
+    return <NewsGrid articles={articles} onArticleSelect={handleArticleSelect} />;
+  }
+
   return (
-    <div className="search-page">
-      <h1>Search News</h1>
-      
-      <form onSubmit={handleSearch} className="search-form">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search for news..."
-          className="search-input"
-        />
-        <button type="submit" className="search-button">Search</button>
-      </form>
-      
-      {loading && <div className="loading">Searching...</div>}
-      {error && <div className="error">Error: {error.message}</div>}
-      
-      {data && (
-        <>
-          <h2>Search Results for "{initialQuery}"</h2>
-          {data.searchArticles.errors && data.searchArticles.errors.length > 0 && (
-            <div className="api-errors">
-              <p>Some sources failed to load:</p>
-              <ul>
-                {data.searchArticles.errors.map((e, i) => (
-                  <li key={i}>{e.source}: {e.message}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {data.searchArticles.articles.length > 0 ? (
-            <NewsGrid articles={data.searchArticles.articles} />
-          ) : (
-            <div className="no-results">No articles found for your search.</div>
-          )}
-        </>
-      )}
+    <div className="news-view">
+      <h1 className="view-title">Search Results</h1>
+      <p className="search-intro">
+        {keyword ? `Showing results for: ` : 'Search for something in the header.'}
+        {keyword && <span className="search-keyword">{keyword}</span>}
+      </p>
+      {renderContent()}
+      <NewsDetailModal article={selectedArticle} onClose={handleCloseModal} />
     </div>
   );
 }

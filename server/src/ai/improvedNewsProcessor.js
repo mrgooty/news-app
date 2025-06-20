@@ -186,50 +186,6 @@ class ImprovedNewsProcessor {
   }
 
   /**
-   * Summarize a news article with improved prompt and fallback
-   * @param {Object} article - The news article to summarize
-   * @returns {Promise<string>} - The summary
-   */
-  async summarizeArticle(article) {
-    const operation = async (useFallback = false) => {
-      const model = useFallback ? this.fallbackModel : this.model;
-      
-      // Improved prompt for better summaries
-      const prompt = ChatPromptTemplate.fromTemplate(
-        `Summarize the following news article in 2-3 concise, informative sentences that capture the main points.
-        Focus on the key facts, events, or developments, and avoid unnecessary details.
-        
-        Title: {title}
-        Content: {content}
-        
-        Summary:`
-      );
-      
-      const chain = prompt.pipe(model).pipe(new StringOutputParser());
-      
-      const summary = await chain.invoke({
-        title: article.title,
-        content: this.prepareContent(article),
-      });
-      
-      return summary.trim();
-    };
-    
-    // Fallback function using BERT
-    const fallbackFn = async () => {
-      if (config.ai.features.fallbackToLocal) {
-        return this.bertAnalyzer.summarize(this.prepareContent(article));
-      }
-      return null;
-    };
-    
-    // Generate a simple fallback summary from title if all else fails
-    const simpleFallback = article.title;
-    
-    return this.executeWithFallback(operation, 'summarize', simpleFallback, fallbackFn);
-  }
-
-  /**
    * Categorize a news article with improved prompt and fallback
    * @param {Object} article - The news article to categorize
    * @returns {Promise<string>} - The category

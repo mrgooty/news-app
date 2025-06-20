@@ -16,5 +16,23 @@ export default defineConfig({
         'src/hooks/usePrefs.ts'
       ]
     }
+  },
+  server: {
+    watch: {
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+        '**/build/**',
+        'src/services/newsServiceManager.test.js'
+      ],
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   }
 })

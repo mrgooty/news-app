@@ -1,4 +1,4 @@
-const { createGraph } = require('@langchain/langgraph');
+const { StateGraph } = require('@langchain/langgraph');
 const ImprovedNewsProcessor = require('./improvedNewsProcessor');
 const EnhancedCacheManager = require('./enhancedCacheManager');
 const config = require('../config/config');
@@ -29,21 +29,24 @@ class ImprovedNewsOrchestrator {
    * @returns {Object} - Compiled LangGraph workflow
    */
   createArticleProcessingGraph() {
-    // Define the state type
+    // Define the state shape
     const graphState = {
-      article: {},
-      processedData: {},
-      error: null,
+      article: { value: null },
+      processedData: { value: null, default: () => ({}) },
+      error: { value: null },
       processingSteps: {
-        summarize: false,
-        categorize: false,
-        extractInfo: false,
-        calculateScore: false,
+        value: null,
+        default: () => ({
+          summarize: false,
+          categorize: false,
+          extractInfo: false,
+          calculateScore: false,
+        }),
       },
     };
 
     // Create the graph
-    const builder = createGraph(graphState);
+    const builder = new StateGraph({ channels: graphState });
 
     // Define the nodes
     builder.addNode("summarize", async (state) => {
@@ -51,11 +54,7 @@ class ImprovedNewsOrchestrator {
         // Skip if disabled in config
         if (!config.ai.features.summarization) {
           return {
-            ...state,
-            processingSteps: {
-              ...state.processingSteps,
-              summarize: true,
-            },
+            processingSteps: { ...state.processingSteps, summarize: true },
           };
         }
         
@@ -69,40 +68,48 @@ class ImprovedNewsOrchestrator {
         );
         
         return {
-          ...state,
-          processedData: {
-            ...state.processedData,
-            summary,
-          },
-          processingSteps: {
-            ...state.processingSteps,
-            summarize: true,
-          },
+          processedData: { ...state.processedData, summary },
+          processingSteps: { ...state.processingSteps, summarize: true },
         };
       } catch (error) {
         log(`Error in summarize: ${error.message}`);
         return {
-          ...state,
           error: `Error in summarize: ${error.message}`,
-          processingSteps: {
-            ...state.processingSteps,
-            summarize: true,
-          },
+          processingSteps: { ...state.processingSteps, summarize: true },
         };
       }
     });
 
-    builder.addNode("categorize", async (state) => {
+    builder.addNode("categorize", this.createCategorizeNode());
+    builder.addNode("extractInfo", this.createExtractInfoNode());
+    builder.addNode("calculateScore", this.createCalculateScoreNode());
+    
+    // Define the flow
+    builder.setEntryPoint("summarize");
+    
+    // Edges define the sequence of operations
+    builder.addEdge("summarize", "categorize");
+    builder.addEdge("categorize", "extractInfo");
+    builder.addEdge("extractInfo", "calculateScore");
+
+    // The graph is finished, and we set the finish point
+    builder.setFinishPoint("calculateScore");
+
+    return builder.compile();
+  }
+
+  /**
+   * Helper method to create the categorization node
+   * This structure helps keep the graph definition clean
+   */
+  createCategorizeNode() {
+    return async (state) => {
       // Continue even if previous step had an error
       try {
         // Skip if disabled in config
         if (!config.ai.features.categorization) {
           return {
-            ...state,
-            processingSteps: {
-              ...state.processingSteps,
-              categorize: true,
-            },
+            processingSteps: { ...state.processingSteps, categorize: true },
           };
         }
         
@@ -116,40 +123,30 @@ class ImprovedNewsOrchestrator {
         );
         
         return {
-          ...state,
-          processedData: {
-            ...state.processedData,
-            category,
-          },
-          processingSteps: {
-            ...state.processingSteps,
-            categorize: true,
-          },
+          processedData: { ...state.processedData, category },
+          processingSteps: { ...state.processingSteps, categorize: true },
         };
       } catch (error) {
         log(`Error in categorize: ${error.message}`);
         return {
-          ...state,
           error: state.error || `Error in categorize: ${error.message}`,
-          processingSteps: {
-            ...state.processingSteps,
-            categorize: true,
-          },
+          processingSteps: { ...state.processingSteps, categorize: true },
         };
       }
-    });
+    };
+  }
 
-    builder.addNode("extractInfo", async (state) => {
+  /**
+   * Helper method to create the info extraction node
+   */
+  createExtractInfoNode() {
+    return async (state) => {
       // Continue even if previous steps had errors
       try {
         // Skip if disabled in config
         if (!config.ai.features.entityExtraction && !config.ai.features.sentimentAnalysis) {
           return {
-            ...state,
-            processingSteps: {
-              ...state.processingSteps,
-              extractInfo: true,
-            },
+            processingSteps: { ...state.processingSteps, extractInfo: true },
           };
         }
         
@@ -163,7 +160,6 @@ class ImprovedNewsOrchestrator {
         );
         
         return {
-          ...state,
           processedData: {
             ...state.processedData,
             entities: keyInfo.entities,
@@ -172,35 +168,29 @@ class ImprovedNewsOrchestrator {
             sentiment: keyInfo.sentiment,
             importance: keyInfo.importance,
           },
-          processingSteps: {
-            ...state.processingSteps,
-            extractInfo: true,
-          },
+          processingSteps: { ...state.processingSteps, extractInfo: true },
         };
       } catch (error) {
         log(`Error in extractInfo: ${error.message}`);
         return {
-          ...state,
           error: state.error || `Error in extractInfo: ${error.message}`,
-          processingSteps: {
-            ...state.processingSteps,
-            extractInfo: true,
-          },
+          processingSteps: { ...state.processingSteps, extractInfo: true },
         };
       }
-    });
+    };
+  }
 
-    builder.addNode("calculateScore", async (state) => {
+  /**
+   * Helper method to create the score calculation node
+   */
+  createCalculateScoreNode() {
+    return async (state) => {
       // Continue even if previous steps had errors
       try {
         // Skip if disabled in config
         if (!config.ai.features.relevanceScoring) {
           return {
-            ...state,
-            processingSteps: {
-              ...state.processingSteps,
-              calculateScore: true,
-            },
+            processingSteps: { ...state.processingSteps, calculateScore: true },
           };
         }
         
@@ -225,69 +215,21 @@ class ImprovedNewsOrchestrator {
         );
         
         return {
-          ...state,
           processedData: {
             ...state.processedData,
             relevanceScore,
             finalScore,
           },
-          processingSteps: {
-            ...state.processingSteps,
-            calculateScore: true,
-          },
+          processingSteps: { ...state.processingSteps, calculateScore: true },
         };
       } catch (error) {
         log(`Error in calculateScore: ${error.message}`);
         return {
-          ...state,
           error: state.error || `Error in calculateScore: ${error.message}`,
-          processingSteps: {
-            ...state.processingSteps,
-            calculateScore: true,
-          },
+          processingSteps: { ...state.processingSteps, calculateScore: true },
         };
       }
-    });
-
-    builder.addNode("finalizeArticle", async (state) => {
-      if (state.error) {
-        log(`Warning: Completed article processing with errors: ${state.error}`);
-      }
-      
-      // Merge the processed data with the original article
-      const enhancedArticle = {
-        ...state.article,
-        summary: state.processedData.summary,
-        category: state.processedData.category || state.article.category,
-        entities: state.processedData.entities,
-        locations: state.processedData.locations,
-        topics: state.processedData.topics,
-        sentiment: state.processedData.sentiment,
-        importance: state.processedData.importance,
-        relevanceScore: state.processedData.relevanceScore,
-        finalScore: state.processedData.finalScore,
-        processingError: state.error,
-      };
-      
-      return {
-        article: enhancedArticle,
-        processedData: state.processedData,
-        error: state.error,
-        processingSteps: state.processingSteps,
-      };
-    });
-
-    // Define the edges
-    builder.addEdge("summarize", "categorize");
-    builder.addEdge("categorize", "extractInfo");
-    builder.addEdge("extractInfo", "calculateScore");
-    builder.addEdge("calculateScore", "finalizeArticle");
-
-    // Set the entry point
-    builder.setEntryPoint("summarize");
-
-    // Compile the graph
-    return builder.compile();
+    };
   }
 
   /**

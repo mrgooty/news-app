@@ -1,236 +1,72 @@
-const NewsServiceManager = require('../services/newsServiceManager');
-const { ImprovedNewsAggregator } = require('../ai');
-const createLogger = require("../utils/logger");
-const log = createLogger("Resolvers");
-
-// Initialize the news service manager
-const newsServiceManager = new NewsServiceManager();
-
-// Initialize the improved AI news aggregator
-const newsAggregator = new ImprovedNewsAggregator();
+const { fetchNewsByCategory, searchNewsByKeyword } = require('../services/newsApiAggregator');
+const articleAnalyzerService = require('../ai/articleAnalyzerService');
+const config = require('../config/config');
+const log = require('../utils/logger')('GraphQLResolvers');
 
 const resolvers = {
   Query: {
-    // Get all available news categories
-    categories: async () => {
-      return newsServiceManager.getCategories();
+    /**
+     * Resolver to fetch the list of available news categories.
+     */
+    categories: () => {
+      log('Resolving categories');
+      return config.appData.categories;
     },
-    
-    // Get all available news sources
-    sources: async () => {
-      return newsServiceManager.getSources();
+
+    /**
+     * Resolver to fetch the list of available locations.
+     */
+    locations: () => {
+      log('Resolving locations');
+      return config.appData.locations;
     },
-    
-    // Get all available locations
-    locations: async () => {
-      return newsServiceManager.getLocations();
-    },
-    
-    // Get news articles by category
-    articlesByCategory: async (_, { category, location, limit = 10, sources }) => {
-      log(`Fetching articles for category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
-      
+
+    /**
+     * Resolver to fetch news articles for a given category and optional location.
+     * Delegates the core logic to the newsApiAggregator service.
+     */
+    newsByCategory: async (_, { category, location }) => {
+      log(`Resolving newsByCategory for category: ${category}, location: ${location || 'none'}`);
       try {
-        const result = await newsServiceManager.getArticlesByCategory(category, location, limit * 2, sources);
-        
-        // Process articles with AI
-        if (result.articles && result.articles.length > 0) {
-          // Process all articles with AI
-          const processedArticles = await newsAggregator.processArticles(result.articles);
-          
-          // Rank the processed articles
-          const rankedArticles = await newsAggregator.rankArticles(processedArticles, {
-            recencyWeight: 0.3,
-            scoreWeight: 0.7,
-            diversityBoost: 0.1
-          });
-          
-          // Limit to the requested number
-          result.articles = rankedArticles.slice(0, limit);
-        }
-        
-        return result;
+        const articles = await fetchNewsByCategory(category, location);
+        return articles;
       } catch (error) {
-        console.error('Error in articlesByCategory resolver:', error);
-        return {
-          articles: [],
-          errors: [{
-            source: 'resolver',
-            message: error.message,
-            code: 'ERROR'
-          }]
-        };
-      }
-    },
-    
-    // Get a specific article by ID
-    article: async (_, { id }) => {
-      log(`Fetching article with ID: ${id}`);
-      
-      // This is a placeholder. In a real implementation, we would need to store
-      // articles in a database or cache to retrieve them by ID.
-      // For now, we'll return null as we don't have a way to fetch by ID directly.
-      return null;
-    },
-    
-    // Search for articles
-    searchArticles: async (_, { query, category, location, limit = 10, sources }) => {
-      log(`Searching for articles with query: ${query}, category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
-      
-      try {
-        const result = await newsServiceManager.searchArticles(query, category, location, limit * 2, sources);
-        
-        // Process articles with AI
-        if (result.articles && result.articles.length > 0) {
-          // Process all articles with AI
-          const processedArticles = await newsAggregator.processArticles(result.articles);
-          
-          // Filter articles to prioritize those matching the search query
-          const filteredArticles = await newsAggregator.filterArticles(processedArticles, {
-            minScore: 4.0,
-            category: category,
-            includeKeywords: [query],
-          });
-          
-          // If filtering removed too many articles, use the original processed articles
-          const articlesToRank = filteredArticles.length < limit / 2 ? processedArticles : filteredArticles;
-          
-          // Rank the processed articles
-          const rankedArticles = await newsAggregator.rankArticles(articlesToRank, {
-            recencyWeight: 0.3,
-            scoreWeight: 0.7
-          });
-          
-          // Limit to the requested number
-          result.articles = rankedArticles.slice(0, limit);
-        }
-        
-        return result;
-      } catch (error) {
-        console.error('Error in searchArticles resolver:', error);
-        return {
-          articles: [],
-          errors: [{
-            source: 'resolver',
-            message: error.message,
-            code: 'ERROR'
-          }]
-        };
-      }
-    },
-    
-    // Get top headlines
-    topHeadlines: async (_, { category, location, limit = 10, sources }) => {
-      log(`Fetching top headlines with category: ${category}, location: ${location}, limit: ${limit}, sources: ${sources}`);
-      
-      try {
-        const result = await newsServiceManager.getTopHeadlines(category, location, limit * 2, sources);
-        
-        // Process articles with AI
-        if (result.articles && result.articles.length > 0) {
-          // Process all articles with AI
-          const processedArticles = await newsAggregator.processArticles(result.articles);
-          
-          // Rank the processed articles
-          const rankedArticles = await newsAggregator.rankArticles(processedArticles, {
-            recencyWeight: 0.4, // Higher weight on recency for headlines
-            scoreWeight: 0.6,
-            diversityBoost: 0.1
-          });
-          
-          // Limit to the requested number
-          result.articles = rankedArticles.slice(0, limit);
-        }
-        
-        return result;
-      } catch (error) {
-        console.error('Error in topHeadlines resolver:', error);
-        return {
-          articles: [],
-          errors: [{
-            source: 'resolver',
-            message: error.message,
-            code: 'ERROR'
-          }]
-        };
-      }
-    },
-    
-    // Get top stories across multiple categories
-    topStoriesAcrossCategories: async (_, { categories = ['general'], limit = 15, location, sources }) => {
-      log(`Fetching top stories across categories: ${categories}, limit: ${limit}, location: ${location}, sources: ${sources}`);
-      
-      try {
-        // Fetch articles for each category
-        const articlesByCategory = {};
-        const fetchPromises = categories.map(async (category) => {
-          const result = await newsServiceManager.getArticlesByCategory(category, location, Math.ceil(limit / categories.length) * 2, sources);
-          articlesByCategory[category] = result.articles || [];
-        });
-        
-        await Promise.all(fetchPromises);
-        
-        // Aggregate top stories across categories
-        const topStories = await newsAggregator.getTopStories(articlesByCategory, limit);
-        
-        return {
-          articles: topStories,
-          errors: null,
-        };
-      } catch (error) {
-        console.error('Error in topStoriesAcrossCategories resolver:', error);
-        return {
-          articles: [],
-          errors: [{
-            source: 'resolver',
-            message: error.message,
-            code: 'ERROR'
-          }]
-        };
+        log.error(`Error in newsByCategory resolver for category ${category}:`, error);
+        // In a real app, you might want to return a specific GraphQL error
+        throw new Error('Failed to fetch news by category.');
       }
     },
 
-    // Get performance metrics
-    performanceMetrics: async () => {
+    /**
+     * Resolver to search for news articles by a keyword, with an optional location.
+     * Delegates the core logic to the newsApiAggregator service.
+     */
+    searchNews: async (_, { keyword, location }) => {
+      log(`Resolving searchNews for keyword: ${keyword}, location: ${location || 'none'}`);
       try {
-        const metrics = newsAggregator.getPerformanceMetrics();
-        return {
-          cacheHitRate: metrics.cacheStats?.hitRate || '0%',
-          averageProcessingTime: metrics.averageProcessArticleTime || 0,
-          totalRequests: metrics.totalRequestCount || 0,
-          apiCalls: metrics.apiUsage?.totalCalls || 0,
-        };
+        const articles = await searchNewsByKeyword(keyword, location);
+        return articles;
       } catch (error) {
-        console.error('Error getting performance metrics:', error);
-        return {
-          cacheHitRate: '0%',
-          averageProcessingTime: 0,
-          totalRequests: 0,
-          apiCalls: 0,
-        };
+        log.error(`Error in searchNews resolver for keyword ${keyword}:`, error);
+        throw new Error('Failed to search for news.');
       }
     },
 
-    prefs: (_, __, { prefs }) => prefs
+    /**
+     * Resolver to analyze an article's content for a summary and sentiment.
+     * Delegates to the ArticleAnalyzerService.
+     */
+    analyzeArticle: async (_, { content, title }) => {
+      log(`Resolving analyzeArticle for: ${title}`);
+      try {
+        const analysis = await articleAnalyzerService.analyze(content, title);
+        return analysis;
+      } catch (error) {
+        log.error(`Error in analyzeArticle resolver for ${title}:`, error);
+        throw new Error('Failed to analyze article.');
+      }
+    },
   },
-
-  Mutation: {
-    setPrefs: async (_, { categories, locations }, { setPrefs }) => {
-      const p = { categories, locations };
-      setPrefs(p);
-      return p;
-    },
-    
-    // Reset performance metrics
-    resetMetrics: async () => {
-      try {
-        newsAggregator.resetMetrics();
-        return { success: true, message: 'Metrics reset successfully' };
-      } catch (error) {
-        return { success: false, message: `Error resetting metrics: ${error.message}` };
-      }
-    }
-  }
 };
 
 module.exports = { resolvers };

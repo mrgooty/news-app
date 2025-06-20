@@ -1,0 +1,108 @@
+/* HomePage specific styles */
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.onboarding-message {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: var(--secondary-bg-color);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--border-radius-large);
+  border: 1px solid var(--border-color);
+}
+
+.onboarding-message p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--secondary-text-color);
+}
+
+/* Status containers (loading, error, empty) */
+.status-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  text-align: center;
+  padding: 2rem;
+}
+
+.status-container p {
+  font-size: 1.1rem;
+  color: var(--secondary-text-color);
+  margin-top: 1rem;
+}
+
+.error-message {
+  font-weight: bold;
+  color: var(--error-color) !important;
+  font-size: 1.2rem !important;
+}
+
+.error-details {
+  font-family: monospace;
+  font-size: 0.9rem !important;
+  color: var(--subtle-text-color) !important;
+  background-color: var(--secondary-bg-color);
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  margin-top: 0.5rem !important;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.try-again-button {
+  margin-top: 1.5rem;
+  padding: 0.8rem 1.5rem;
+  background-color: var(--accent-color);
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.try-again-button:hover {
+  background-color: var(--accent-color-dark);
+}
+
+.cta-button {
+  padding: 0.6rem 1.2rem;
+  background-color: var(--accent-color);
+  color: #fff !important;
+  text-decoration: none;
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.cta-button:hover {
+  background-color: var(--accent-color-dark);
+  transform: translateY(-2px);
+}
+
+/* Spinner Animation */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--border-color);
+  border-top: 5px solid var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 

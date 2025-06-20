@@ -2,11 +2,14 @@
  * Cache manager for AI-processed news articles
  * Helps reduce redundant processing and improve performance
  */
+const log = require('../utils/logger')('CacheManager');
+
 class CacheManager {
   constructor(options = {}) {
     this.cache = new Map();
     this.ttl = options.ttl || 15 * 60 * 1000; // Default 15 minutes
     this.maxSize = options.maxSize || 1000; // Maximum number of items in cache
+    this.name = options.name || 'GenericCache';
     
     // Set up periodic cleanup
     this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000); // Every 5 minutes
@@ -18,22 +21,20 @@ class CacheManager {
    * @returns {any|null} - Cached item or null if not found/expired
    */
   get(key) {
-    if (!this.cache.has(key)) {
+    const record = this.cache.get(key);
+    if (!record) {
+      log(`[${this.name}] CACHE MISS for key: ${key}`);
       return null;
     }
-    
-    const item = this.cache.get(key);
-    
-    // Check if item has expired
-    if (Date.now() > item.expiry) {
+
+    if (Date.now() > record.expiry) {
+      log(`[${this.name}] CACHE EXPIRED for key: ${key}`);
       this.cache.delete(key);
       return null;
     }
-    
-    // Update access time
-    item.lastAccessed = Date.now();
-    
-    return item.value;
+
+    log(`[${this.name}] CACHE HIT for key: ${key}`);
+    return record.value;
   }
 
   /**
@@ -48,11 +49,12 @@ class CacheManager {
       this.evictOldest();
     }
     
-    this.cache.set(key, {
+    const record = {
       value,
       expiry: Date.now() + ttl,
-      lastAccessed: Date.now(),
-    });
+    };
+    this.cache.set(key, record);
+    log(`[${this.name}] CACHE SET for key: ${key}`);
   }
 
   /**
@@ -130,6 +132,11 @@ class CacheManager {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
+  }
+
+  withName(name) {
+    this.name = name;
+    return this;
   }
 }
 

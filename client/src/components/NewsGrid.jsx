@@ -1,14 +1,19 @@
+import React from 'react';
 import NewsCard from './NewsCard';
 
-function NewsGrid({ articles, viewMode = 'grid' }) {
+function NewsGrid({ articles, onArticleSelect }) {
   if (!articles || articles.length === 0) {
     return <div className="no-articles">No articles available.</div>;
   }
 
   return (
-    <div className={`news-container ${viewMode === 'grid' ? 'news-grid' : 'news-list'}`}>
-      {articles.map(article => (
-        <NewsCard key={article.id} article={article} viewMode={viewMode} />
+    <div className="news-grid">
+      {articles.map((article, index) => (
+        <NewsCard 
+          key={article.url || index} 
+          article={article} 
+          onArticleSelect={onArticleSelect} 
+        />
       ))}
     </div>
   );

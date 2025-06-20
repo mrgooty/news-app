@@ -8,43 +8,32 @@ async function getPipeline() {
 }
 
 /**
- * Analyzer using BERT-based models for summarization and sentiment analysis
+ * Analyzer using a distilled BERT model for sentiment analysis.
  */
 class BertAnalyzer {
   constructor() {
-    this.loaders = {
-      summarizer: null,
-      sentiment: null,
-    };
+    this.sentimentPipeline = null;
+    this.initializing = this.init();
   }
 
-  async loadModels() {
-    const pipeline = await getPipeline();
-    if (!this.loaders.summarizer) {
-      this.loaders.summarizer = pipeline(
-        'summarization',
-        'Xenova/bart-large-cnn'
-      );
-    }
-    if (!this.loaders.sentiment) {
-      this.loaders.sentiment = pipeline(
+  async init() {
+    try {
+      const pipeline = await getPipeline();
+      this.sentimentPipeline = await pipeline(
         'sentiment-analysis',
         'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
       );
+    } catch (error) {
+      console.error("Failed to initialize sentiment analysis pipeline:", error);
     }
-    this.summarizer = await this.loaders.summarizer;
-    this.sentiment = await this.loaders.sentiment;
-  }
-
-  async summarize(text) {
-    await this.loadModels();
-    const result = await this.summarizer(text, { max_length: 60 });
-    return result[0]?.summary_text || '';
   }
 
   async analyzeSentiment(text) {
-    await this.loadModels();
-    const result = await this.sentiment(text);
+    await this.initializing;
+    if (!this.sentimentPipeline) {
+      return 'neutral'; // Fallback if pipeline fails
+    }
+    const result = await this.sentimentPipeline(text);
     return result[0]?.label.toLowerCase() || 'neutral';
   }
 }

@@ -1,36 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useUserPreferences } from '../context/UserPreferencesContext';
+import { useUserPreferences } from '../hooks/usePrefs';
+import '../styles/main.css';
 
-function TabNavigation({ categories }) {
+function TabNavigation({ categories = [] }) {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('home');
   const tabsRef = useRef(null);
-  const { selectedCategories } = useUserPreferences();
+  const { selectedCategories, isLoaded } = useUserPreferences();
   
-  // Default categories if none are provided or selected
-  const defaultCategories = [
-    { id: 'general', name: 'News' },
-    { id: 'business', name: 'Business' },
-    { id: 'technology', name: 'Tech' },
-    { id: 'entertainment', name: 'Entertainment' },
-    { id: 'sports', name: 'Sports' },
-    { id: 'science', name: 'Science' },
-    { id: 'health', name: 'Health' }
-  ];
-  
-  // Use selected categories if available, otherwise use defaults
-  const displayCategories = selectedCategories.length > 0 
-    ? categories?.filter(cat => selectedCategories.includes(cat.id)) || []
-    : defaultCategories;
+  // Use selected categories if loaded and available, otherwise show no category tabs
+  const displayCategories = isLoaded && selectedCategories.length > 0
+    ? categories.filter(cat => selectedCategories.includes(cat.id))
+    : [];
   
   // Set active tab based on current route
   useEffect(() => {
-    if (location.pathname === '/') {
+    const path = location.pathname;
+    if (path === '/') {
       setActiveTab('home');
-    } else if (location.pathname.startsWith('/category/')) {
-      const categoryId = location.pathname.split('/').pop();
+    } else if (path.startsWith('/category/')) {
+      const categoryId = path.split('/').pop();
       setActiveTab(categoryId);
+    } else {
+      setActiveTab(''); // No active tab if not home or a category page
     }
   }, [location]);
   
@@ -43,7 +36,6 @@ function TabNavigation({ categories }) {
         const tabRect = activeTabElement.getBoundingClientRect();
         const containerRect = tabsContainer.getBoundingClientRect();
         
-        // Calculate scroll position to center the active tab
         const scrollLeft = activeTabElement.offsetLeft - (containerRect.width / 2) + (tabRect.width / 2);
         tabsContainer.scrollTo({ left: scrollLeft, behavior: 'smooth' });
       }

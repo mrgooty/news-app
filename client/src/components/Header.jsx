@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useUserPreferences } from '../context/UserPreferencesContext';
+import { useUserPreferences } from '../hooks/usePrefs';
+import '../styles/Header.css';
 
 function Header() {
   const [searchQuery, setSearchQuery] = useState('');

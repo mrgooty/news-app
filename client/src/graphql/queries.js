@@ -149,3 +149,57 @@ export const SEARCH_ARTICLES = gql`
     }
   }
 `;
+
+export const GET_PREFERENCES_DATA = gql`
+  query GetPreferencesData {
+    categories {
+      id
+      name
+    }
+    locations {
+      id
+      name
+      code
+    }
+  }
+`;
+
+export const GET_NEWS_BY_CATEGORY = gql`
+  query GetNewsByCategory($category: String!, $location: String) {
+    newsByCategory(category: $category, location: $location) {
+      id
+      title
+      description
+      url
+      imageUrl
+      source
+      publishedAt
+      category
+    }
+  }
+`;
+
+export const SEARCH_NEWS = gql`
+  query SearchNews($keyword: String!, $location: String) {
+    searchNews(keyword: $keyword, location: $location) {
+      id
+      title
+      description
+      url
+      imageUrl
+      source
+      publishedAt
+      category
+    }
+  }
+`;
+
+export const ANALYZE_ARTICLE = gql`
+  query AnalyzeArticle($title: String!, $content: String!) {
+    analyzeArticle(title: $title, content: $content) {
+      summary
+      sentiment
+      sentimentLabel
+    }
+  }
+`;
