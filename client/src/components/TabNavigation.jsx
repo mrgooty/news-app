@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useUserPreferences } from '../hooks/usePrefs';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { setActiveTab } from '../store/slices/uiStateSlice';
 import '../styles/main.css';
 
 function TabNavigation({ categories = [] }) {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('home');
+  const dispatch = useAppDispatch();
   const tabsRef = useRef(null);
-  const { selectedCategories, isLoaded } = useUserPreferences();
+  const { selectedCategories, isLoaded } = useAppSelector((state) => state.userPreferences);
+  const activeTab = useAppSelector((state) => state.uiState.activeTab);
   
   // Use selected categories if loaded and available, otherwise show no category tabs
   const displayCategories = isLoaded && selectedCategories.length > 0
@@ -18,14 +20,14 @@ function TabNavigation({ categories = [] }) {
   useEffect(() => {
     const path = location.pathname;
     if (path === '/') {
-      setActiveTab('home');
+      dispatch(setActiveTab('home'));
     } else if (path.startsWith('/category/')) {
       const categoryId = path.split('/').pop();
-      setActiveTab(categoryId);
+      dispatch(setActiveTab(categoryId));
     } else {
-      setActiveTab(''); // No active tab if not home or a category page
+      dispatch(setActiveTab('')); // No active tab if not home or a category page
     }
-  }, [location]);
+  }, [location, dispatch]);
   
   // Scroll active tab into view
   useEffect(() => {
@@ -42,13 +44,17 @@ function TabNavigation({ categories = [] }) {
     }
   }, [activeTab]);
 
+  const handleTabClick = (tabId) => {
+    dispatch(setActiveTab(tabId));
+  };
+
   return (
     <div className="tab-navigation-container">
       <div className="tabs-wrapper">
         <div className="tabs-container" ref={tabsRef}>
           <div 
             className={`tab-item ${activeTab === 'home' ? 'active' : ''}`}
-            onClick={() => setActiveTab('home')}
+            onClick={() => handleTabClick('home')}
           >
             <Link to="/">For You</Link>
           </div>
@@ -57,7 +63,7 @@ function TabNavigation({ categories = [] }) {
             <div 
               key={category.id}
               className={`tab-item ${activeTab === category.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(category.id)}
+              onClick={() => handleTabClick(category.id)}
             >
               <Link to={`/category/${category.id}`}>{category.name}</Link>
             </div>

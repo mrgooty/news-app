@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_PREFERENCES_DATA } from './graphql/queries';
+import { useAppSelector, useAppDispatch } from './store/hooks';
+import { loadPreferences } from './store/slices/userPreferencesSlice';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
@@ -10,13 +12,19 @@ import SearchPage from './pages/SearchPage';
 import PreferencesPage from './pages/PreferencesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import TabNavigation from './components/TabNavigation';
-import { useUserPreferences } from './hooks/usePrefs';
+import NewsDetailModal from './components/NewsDetailModal';
 
 function AppContent() {
-  const { isLoaded } = useUserPreferences();
-  const { data, loading, error } = useQuery(GET_PREFERENCES_DATA);
+  const dispatch = useAppDispatch();
+  const { isLoaded, loading } = useAppSelector((state) => state.userPreferences);
+  const { data, loading: queryLoading, error } = useQuery(GET_PREFERENCES_DATA);
 
-  if (!isLoaded || loading) {
+  // Load preferences on component mount
+  useEffect(() => {
+    dispatch(loadPreferences());
+  }, [dispatch]);
+
+  if (!isLoaded || loading || queryLoading) {
     return (
       <main className="main-content">
         <div className="status-container">
@@ -55,6 +63,7 @@ function App() {
         <Header />
         <AppContent />
         <Footer />
+        <NewsDetailModal />
       </div>
     </Router>
   );

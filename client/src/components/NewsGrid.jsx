@@ -1,22 +1,24 @@
-import React from 'react';
+import React, { memo } from 'react';
 import NewsCard from './NewsCard';
 
-function NewsGrid({ articles, onArticleSelect }) {
+const NewsGrid = memo(({ articles = [] }) => {
   if (!articles || articles.length === 0) {
-    return <div className="no-articles">No articles available.</div>;
+    return (
+      <div className="news-grid-empty">
+        <p>No articles found.</p>
+      </div>
+    );
   }
 
   return (
     <div className="news-grid">
-      {articles.map((article, index) => (
-        <NewsCard 
-          key={article.url || index} 
-          article={article} 
-          onArticleSelect={onArticleSelect} 
-        />
+      {articles.map((article) => (
+        <NewsCard key={article.id || article.url} article={article} />
       ))}
     </div>
   );
-}
+});
+
+NewsGrid.displayName = 'NewsGrid';
 
 export default NewsGrid;

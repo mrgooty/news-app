@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useUserPreferences } from '../hooks/usePrefs';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { toggleDarkMode } from '../store/slices/userPreferencesSlice';
 import '../styles/Header.css';
 
 function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { darkMode, toggleDarkMode } = useUserPreferences();
+  const dispatch = useAppDispatch();
+  const { darkMode } = useAppSelector((state) => state.userPreferences);
   const navigate = useNavigate();
 
   const handleSearchSubmit = (e) => {
@@ -18,6 +20,10 @@ function Header() {
     }
   };
 
+  const handleThemeToggle = () => {
+    dispatch(toggleDarkMode());
+  };
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -27,7 +33,7 @@ function Header() {
       <div className="header-container">
         <div className="logo-container">
           <Link to="/" className="logo">
-            NewsAI
+            NewsApp
           </Link>
         </div>
 
@@ -35,13 +41,15 @@ function Header() {
           <form onSubmit={handleSearchSubmit}>
             <input
               type="text"
+              id="search-input"
+              name="q"
               placeholder="Search news..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
             />
             <button type="submit" className="search-button">
-              <span className="search-icon">🔍</span>
+              🔍
             </button>
           </form>
         </div>
@@ -49,16 +57,25 @@ function Header() {
         <nav className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
           <ul className="nav-links">
             <li>
-              <Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
+              <Link to="/" onClick={() => setIsMenuOpen(false)}>
+                Home
+              </Link>
             </li>
             <li>
-              <Link to="/preferences" onClick={() => setIsMenuOpen(false)}>Preferences</Link>
+              <Link to="/search" onClick={() => setIsMenuOpen(false)}>
+                Search
+              </Link>
             </li>
             <li>
-              <button 
-                className="theme-toggle" 
-                onClick={toggleDarkMode}
-                aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              <Link to="/preferences" onClick={() => setIsMenuOpen(false)}>
+                Preferences
+              </Link>
+            </li>
+            <li>
+              <button
+                className="theme-toggle"
+                onClick={handleThemeToggle}
+                aria-label="Toggle dark mode"
               >
                 {darkMode ? '☀️' : '🌙'}
               </button>
@@ -66,8 +83,8 @@ function Header() {
           </ul>
         </nav>
 
-        <button 
-          className={`menu-toggle ${isMenuOpen ? 'open' : ''}`} 
+        <button
+          className={`menu-toggle ${isMenuOpen ? 'open' : ''}`}
           onClick={toggleMenu}
           aria-label="Toggle menu"
         >

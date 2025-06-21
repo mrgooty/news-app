@@ -1,156 +1,118 @@
-import React, { useState, useEffect } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faThumbsUp, faThumbsDown, faMeh, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
-import '../styles/news-views.css'; 
+import React, { memo, useCallback, useEffect, useState } from 'react';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { closeArticleModal } from '../store/slices/uiStateSlice';
+import '../styles/news-views.css';
+import placeholderImage from '../assets/placeholder-news.jpg';
+import ArticleAnalysis from './ArticleAnalysis';
 
-const NewsDetailModal = ({ article, onClose }) => {
-  const [analysis, setAnalysis] = useState(null);
-  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
-  const [analysisError, setAnalysisError] = useState('');
+// Helper function for date formatting
+const formatDate = (dateString) => {
+  if (!dateString) return 'Date not available';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
-  // Close modal on 'Escape' key press for accessibility
+const NewsDetailModal = memo(() => {
+  const dispatch = useAppDispatch();
+  const { isModalOpen, selectedArticle } = useAppSelector((state) => state.uiState);
+  
+  const [imgSrc, setImgSrc] = useState(null);
+
+  const handleClose = useCallback(() => {
+    dispatch(closeArticleModal());
+  }, [dispatch]);
+
+  // Effect to handle body scroll and keydown listeners
   useEffect(() => {
-    const handleEsc = (event) => {
-      if (event.key === 'Escape') {
-        onClose();
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleClose();
       }
     };
-    window.addEventListener('keydown', handleEsc);
+
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
 
     return () => {
-      window.removeEventListener('keydown', handleEsc);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
     };
-  }, [onClose]);
-
-  // Reset state when a new article is selected
+  }, [isModalOpen, handleClose]);
+  
+  // Effect to set image source when a new article is selected
   useEffect(() => {
-    setAnalysis(null);
-    setAnalysisError('');
-    setIsLoadingAnalysis(false);
-  }, [article]);
+    if (selectedArticle) {
+      setImgSrc(selectedArticle.imageUrl || placeholderImage);
+    }
+  }, [selectedArticle]);
 
-  if (!article) {
+  const handleBackdropClick = useCallback((e) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  }, [handleClose]);
+
+  if (!isModalOpen || !selectedArticle) {
     return null;
   }
 
-  // Prevents the modal from closing when clicking inside the content
-  const handleContentClick = (e) => {
-    e.stopPropagation();
-  };
-
-  const handleAnalyze = async () => {
-    if (!article.url) {
-      setAnalysisError('Article URL not available to analyze.');
-      return;
-    }
-
-    setIsLoadingAnalysis(true);
-    setAnalysis(null);
-    setAnalysisError('');
-    try {
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: article.url }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to retrieve analysis.' }));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setAnalysis(data);
-    } catch (error) {
-      console.error('Error fetching analysis:', error);
-      setAnalysisError(error.message || 'An unknown error occurred.');
-    } finally {
-      setIsLoadingAnalysis(false);
-    }
-  };
-  
-  const getSentimentIcon = (sentiment) => {
-    const label = sentiment?.label?.toUpperCase();
-    switch (label) {
-      case 'POSITIVE':
-        return { icon: faThumbsUp, color: 'var(--success-color)' };
-      case 'NEGATIVE':
-        return { icon: faThumbsDown, color: 'var(--error-color)' };
-      case 'NEUTRAL':
-        return { icon: faMeh, color: 'var(--text-muted-color)' };
-      default:
-        return { icon: faExclamationCircle, color: 'var(--warning-color)' };
-    }
-  };
-
-  const publishedDate = article.publishedAt 
-    ? new Date(article.publishedAt).toLocaleString() 
-    : 'Not available';
-  
-  const sentimentIcon = analysis?.sentiment ? getSentimentIcon(analysis.sentiment) : null;
+  const sourceName = (typeof selectedArticle.source === 'object' ? selectedArticle.source?.name : selectedArticle.source) || 'Unknown Source';
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="modal-content" 
-        onClick={handleContentClick}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
-        <button className="modal-close" onClick={onClose}>
-          &times;
-        </button>
-        <h2 id="modal-title" className="modal-title">{article.title}</h2>
-        <div className="modal-meta">
-          <span className="modal-source">{article.source}</span>
-          <span className="modal-date">{publishedDate}</span>
+    <div className="modal-overlay" onClick={handleBackdropClick}>
+      <div className="modal-content">
+        <button className="modal-close" onClick={handleClose} aria-label="Close modal">×</button>
+        
+        <div className="modal-header">
+          <h2 className="modal-title">{selectedArticle?.title || 'No title available'}</h2>
+          <div className="modal-meta">
+            <span className="modal-source">{sourceName}</span>
+            <span className="modal-date">{formatDate(selectedArticle?.publishedAt)}</span>
+            {selectedArticle?.category && <span className="modal-category">{selectedArticle.category}</span>}
+          </div>
         </div>
-        {article.imageUrl && (
-          <img src={article.imageUrl} alt="" className="modal-image" />
-        )}
-        <div className="modal-body">
-          <p>{article.content || article.description || 'Full content not available.'}</p>
-        </div>
-        <div className="modal-footer">
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="read-more-button"
-          >
-            Read Full Article
-          </a>
-          <button onClick={handleAnalyze} disabled={isLoadingAnalysis} className="summarize-button">
-            {isLoadingAnalysis ? 'Analyzing...' : 'Analyze Article'}
-          </button>
-        </div>
-
-        {(analysis || isLoadingAnalysis || analysisError) && (
-          <div className="analysis-result">
-            <h3>Analysis</h3>
-            {isLoadingAnalysis && <p>Loading analysis...</p>}
-            {analysisError && <div className="error-message analysis-error">{analysisError}</div>}
-            {analysis && (
-              <>
-                {sentimentIcon && (
-                  <div className="sentiment-display">
-                    <FontAwesomeIcon icon={sentimentIcon.icon} style={{ color: sentimentIcon.color }} />
-                    <strong style={{ color: sentimentIcon.color, marginLeft: '8px' }}>
-                      {analysis.sentiment.label}
-                    </strong>
-                  </div>
-                )}
-                <p>{analysis.summary}</p>
-              </>
-            )}
+        
+        {imgSrc && (
+          <div className="modal-image-container">
+            <img
+              src={imgSrc}
+              alt={selectedArticle?.title || ''}
+              className="modal-image"
+              loading="lazy"
+              onError={() => setImgSrc(placeholderImage)}
+            />
           </div>
         )}
+        
+        <div className="modal-body">
+          <p className="modal-description">{selectedArticle?.description || 'No description available.'}</p>
+          {selectedArticle?.content && (
+            <div className="modal-content-text">
+              {selectedArticle.content}
+            </div>
+          )}
+        </div>
+        
+        <div className="modal-footer">
+          <a href={selectedArticle?.url} target="_blank" rel="noopener noreferrer" className="modal-read-more">
+            Read Full Article
+          </a>
+          <ArticleAnalysis articleUrl={selectedArticle?.url} />
+        </div>
       </div>
     </div>
   );
-};
+});
+
+NewsDetailModal.displayName = 'NewsDetailModal';
 
 export default NewsDetailModal; 

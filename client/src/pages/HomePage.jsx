@@ -1,85 +1,42 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useUserPreferences } from '../hooks/usePrefs';
-import { useLazyQuery } from '@apollo/client';
-import { GET_NEWS_BY_CATEGORY } from '../graphql/queries';
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { fetchAllNews } from '../store/slices/newsDataSlice';
 import NewsGrid from '../components/NewsGrid';
 import NewsDetailModal from '../components/NewsDetailModal';
-import { Link } from 'react-router-dom';
 import '../styles/news-views.css';
 import '../styles/HomePage.css';
 
 function HomePage() {
-  const { selectedCategories, location, isLoaded } = useUserPreferences();
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedArticle, setSelectedArticle] = useState(null);
-  
-  const [getNews, { loading: queryLoading, error: queryError }] = useLazyQuery(GET_NEWS_BY_CATEGORY);
-
-  const handleArticleSelect = (article) => {
-    setSelectedArticle(article);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedArticle(null);
-  };
-
-  const fetchNews = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    let categoriesToFetch = selectedCategories.length > 0 ? selectedCategories : ['general'];
-
-    try {
-      const fetchPromises = categoriesToFetch.map(category =>
-        getNews({ variables: { category, location } })
-      );
-      
-      const results = await Promise.all(fetchPromises);
-      
-      const allArticles = results.flatMap(result => {
-        if (result.error) {
-          console.error(`Error fetching news for a category:`, result.error);
-          return []; // Skip this category on error
-        }
-        return result.data?.newsByCategory || [];
-      });
-      
-      const uniqueArticles = Array.from(new Map(allArticles.map(a => [a.url, a])).values());
-      uniqueArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-
-      setArticles(uniqueArticles);
-    } catch (err) {
-      console.error('An unexpected error occurred during news fetching:', err);
-      setError('Failed to fetch news. Please check your connection.');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCategories, location, getNews]);
+  const dispatch = useAppDispatch();
+  const { selectedCategories, location, isLoaded } = useAppSelector((state) => state.userPreferences);
+  const { articles, loading, error } = useAppSelector((state) => state.newsData);
 
   useEffect(() => {
-    if (isLoaded) {
-      fetchNews();
+    if (isLoaded && selectedCategories.length > 0) {
+      dispatch(fetchAllNews({ categories: selectedCategories, location }));
     }
-  }, [isLoaded, fetchNews]);
+  }, [dispatch, isLoaded, selectedCategories, location]);
 
   const renderContent = () => {
-    if ((!isLoaded || loading) && articles.length === 0) {
+    if (loading) {
       return (
         <div className="status-container">
           <div className="spinner"></div>
-          <p>Loading news...</p>
+          <p>Loading your personalized news feed...</p>
         </div>
       );
     }
-  
+
     if (error) {
       return (
         <div className="status-container">
           <p className="error-message">Could not load your feed.</p>
           <p className="error-details">{error}</p>
-          <button onClick={fetchNews} className="try-again-button">
+          <button 
+            onClick={() => dispatch(fetchAllNews({ categories: selectedCategories, location }))} 
+            className="try-again-button"
+          >
             Try Again
           </button>
         </div>
@@ -88,17 +45,17 @@ function HomePage() {
 
     if (articles.length === 0) {
       return (
-         <div className="status-container">
-           <p>No articles found for your selected categories.</p>
-           <Link to="/preferences" className="cta-button">
-             Select Different Categories
-           </Link>
-         </div>
+        <div className="status-container">
+          <p>No articles found for your selected categories.</p>
+          <Link to="/preferences" className="cta-button">
+            Select Different Categories
+          </Link>
+        </div>
       );
     }
 
-    return <NewsGrid articles={articles} onArticleSelect={handleArticleSelect} />;
-  }
+    return <NewsGrid articles={articles} />;
+  };
 
   return (
     <div className="news-view">
@@ -116,7 +73,7 @@ function HomePage() {
         )}
       </div>
       {renderContent()}
-      <NewsDetailModal article={selectedArticle} onClose={handleCloseModal} />
+      <NewsDetailModal />
     </div>
   );
 }

@@ -1,41 +1,72 @@
-import React, { useState } from 'react';
+import React, { memo, useState, useEffect } from 'react';
+import { useAppDispatch } from '../store/hooks';
+import { openArticleModal } from '../store/slices/uiStateSlice';
+import '../styles/components/NewsCard.css';
 import placeholderImage from '../assets/placeholder-news.jpg';
 
-const NewsCard = ({ article, onArticleSelect }) => {
+const NewsCard = memo(({ article }) => {
+  const dispatch = useAppDispatch();
   const [imgSrc, setImgSrc] = useState(article.imageUrl || placeholderImage);
+
+  // When the article prop changes, reset the image source.
+  useEffect(() => {
+    setImgSrc(article.imageUrl || placeholderImage);
+  }, [article.imageUrl]);
+
+  const handleCardClick = () => {
+    dispatch(openArticleModal(article));
+  };
 
   const handleImageError = () => {
     setImgSrc(placeholderImage);
   };
 
-  const handleCardClick = () => {
-    if (onArticleSelect) {
-      onArticleSelect(article);
-    }
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   return (
-    <article className="news-card" onClick={handleCardClick}>
-      <div className="news-card-image-container">
-        <img 
-          src={imgSrc} 
-          alt={article.title} 
-          className="news-card-image"
-          onError={handleImageError} 
-        />
-      </div>
-      <div className="news-card-content">
-        <h3 className="news-card-title">{article.title}</h3>
-        <p className="news-card-source">
-          <span>{article.source}</span>
-          <span className="news-card-date">
-            {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : ''}
+    <div className="news-card" onClick={handleCardClick}>
+      <div className="news-card-header">
+        <div className="news-image-container">
+          <img
+            src={imgSrc}
+            alt={article?.title}
+            className="news-image"
+            loading="lazy"
+            onError={handleImageError}
+          />
+        </div>
+        <div className="news-meta">
+          <span className="news-source">
+            {(typeof article.source === 'object' ? article.source?.name : article.source) || 'Unknown Source'}
           </span>
-        </p>
-        <p className="news-card-description">{article.description}</p>
+          <span className="news-date">{formatDate(article?.publishedAt)}</span>
+          {article?.category && <span className="news-category">{article.category}</span>}
+        </div>
       </div>
-    </article>
+      <div className="news-content">
+        <h3 className="news-title">
+          <a href={article?.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+            {article?.title}
+          </a>
+        </h3>
+        <p className="news-description">{article?.description}</p>
+        <div className="news-footer">
+          <button onClick={handleCardClick} className="read-more-link">
+            Read More
+          </button>
+        </div>
+      </div>
+    </div>
   );
-};
+});
+
+NewsCard.displayName = 'NewsCard';
 
 export default NewsCard;

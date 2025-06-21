@@ -1,9 +1,11 @@
 const express = require('express');
+const axios = require('axios');
 const router = express.Router();
 const { fetchNewsByCategory, searchNewsByKeyword } = require('../services/newsApiAggregator');
 const config =require('../config/config');
 const articleAnalyzerService = require('../ai/articleAnalyzerService');
 const logger = require('../utils/logger')('ApiRoutes');
+const { getEnhancedNews } = require('../ai/improvedNewsOrchestrator');
 
 // Route to get the list of available categories
 router.get('/categories', (req, res) => {
@@ -68,4 +70,4 @@ router.post('/analyze', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

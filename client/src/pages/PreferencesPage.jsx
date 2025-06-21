@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
-import { useUserPreferences } from '../hooks/usePrefs';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { savePreferences } from '../store/slices/userPreferencesSlice';
 import { GET_PREFERENCES_DATA } from '../graphql/queries';
 import '../styles/preferences.css';
 
 function PreferencesPage() {
-  const { selectedCategories, location, savePreferences, isLoaded } = useUserPreferences();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { selectedCategories, location, isLoaded } = useAppSelector((state) => state.userPreferences);
   const { loading, error, data } = useQuery(GET_PREFERENCES_DATA);
 
   const [localCategories, setLocalCategories] = useState([]);
   const [localLocation, setLocalLocation] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (isLoaded) {
@@ -33,12 +35,16 @@ function PreferencesPage() {
     setLocalLocation(event.target.value);
   };
 
-  const handleSaveChanges = () => {
-    savePreferences(localCategories, localLocation);
-    setSavedMessage('Preferences saved successfully! Redirecting...');
-    setTimeout(() => {
-      navigate('/');
-    }, 1500);
+  const handleSaveChanges = async () => {
+    try {
+      await dispatch(savePreferences({ categories: localCategories, location: localLocation })).unwrap();
+      setSavedMessage('Preferences saved successfully! Redirecting...');
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+    } catch (error) {
+      setSavedMessage('Error saving preferences. Please try again.');
+    }
   };
 
   if (loading) return <p className="loading-message">Loading settings...</p>;
