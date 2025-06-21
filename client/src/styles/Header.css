@@ -153,15 +153,15 @@
 }
 
 .main-nav .nav-links {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-.main-nav li {
-  margin-left: 20px;
+.nav-links li {
+  margin: 0 15px;
 }
 
 .main-nav a,
@@ -204,35 +204,27 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 24px;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  color: var(--trust-slate);
-  transition: all 0.3s ease;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .theme-toggle:hover {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px) scale(1.05);
-  color: var(--trust-navy);
+  transform: scale(1.1);
 }
 
-.dark-mode .theme-toggle {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
+.theme-icon {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.3s ease-in-out;
+  stroke: currentColor;
 }
 
-.dark-mode .theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px) scale(1.05);
-  color: rgba(255, 255, 255, 1);
+[data-theme='dark'] .theme-toggle {
+  color: var(--secondary-color);
 }
 
 .menu-toggle {

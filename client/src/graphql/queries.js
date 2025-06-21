@@ -24,31 +24,34 @@ export const GET_LOCATIONS = gql`
 
 // Query to fetch top headlines
 export const GET_TOP_HEADLINES = gql`
-  query GetTopHeadlines($category: String, $location: String, $limit: Int, $sources: [String]) {
-    topHeadlines(category: $category, location: $location, limit: $limit, sources: $sources) {
-      articles {
-        id
-        title
-        description
-        content
-        url
-        imageUrl
-        source
-        publishedAt
-        category
-        summary
-        location
-        entities
-        topics
-        sentiment
-        importance
-        relevanceScore
-        finalScore
+  query GetTopHeadlines($category: String, $location: String, $first: Int, $after: String) {
+    topHeadlines(category: $category, location: $location, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          title
+          description
+          content
+          url
+          imageUrl
+          source
+          publishedAt
+          category
+          cursor
+        }
       }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
       errors {
         source
         message
         code
+        retryable
       }
     }
   }
@@ -56,31 +59,34 @@ export const GET_TOP_HEADLINES = gql`
 
 // Query to fetch articles by category
 export const GET_ARTICLES_BY_CATEGORY = gql`
-  query GetArticlesByCategory($category: String!, $location: String, $limit: Int, $sources: [String]) {
-    articlesByCategory(category: $category, location: $location, limit: $limit, sources: $sources) {
-      articles {
-        id
-        title
-        description
-        content
-        url
-        imageUrl
-        source
-        publishedAt
-        category
-        summary
-        location
-        entities
-        topics
-        sentiment
-        importance
-        relevanceScore
-        finalScore
+  query GetArticlesByCategory($category: String!, $location: String, $first: Int, $after: String) {
+    newsByCategory(category: $category, location: $location, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          title
+          description
+          content
+          url
+          imageUrl
+          source
+          publishedAt
+          category
+          cursor
+        }
       }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
       errors {
         source
         message
         code
+        retryable
       }
     }
   }
@@ -88,31 +94,34 @@ export const GET_ARTICLES_BY_CATEGORY = gql`
 
 // Query to fetch top stories across multiple categories
 export const GET_TOP_STORIES_ACROSS_CATEGORIES = gql`
-  query GetTopStoriesAcrossCategories($categories: [String], $location: String, $limit: Int, $sources: [String]) {
-    topStoriesAcrossCategories(categories: $categories, location: $location, limit: $limit, sources: $sources) {
-      articles {
-        id
-        title
-        description
-        content
-        url
-        imageUrl
-        source
-        publishedAt
-        category
-        summary
-        location
-        entities
-        topics
-        sentiment
-        importance
-        relevanceScore
-        finalScore
+  query GetTopStoriesAcrossCategories($categories: [String!]!, $location: String, $first: Int, $after: String) {
+    topStoriesAcrossCategories(categories: $categories, location: $location, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          title
+          description
+          content
+          url
+          imageUrl
+          source
+          publishedAt
+          category
+          cursor
+        }
       }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
       errors {
         source
         message
         code
+        retryable
       }
     }
   }
@@ -120,31 +129,34 @@ export const GET_TOP_STORIES_ACROSS_CATEGORIES = gql`
 
 // Query to search articles
 export const SEARCH_ARTICLES = gql`
-  query SearchArticles($query: String!, $category: String, $location: String, $limit: Int, $sources: [String]) {
-    searchArticles(query: $query, category: $category, location: $location, limit: $limit, sources: $sources) {
-      articles {
-        id
-        title
-        description
-        content
-        url
-        imageUrl
-        source
-        publishedAt
-        category
-        summary
-        location
-        entities
-        topics
-        sentiment
-        importance
-        relevanceScore
-        finalScore
+  query SearchArticles($keyword: String!, $location: String, $first: Int, $after: String) {
+    searchNews(keyword: $keyword, location: $location, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          title
+          description
+          content
+          url
+          imageUrl
+          source
+          publishedAt
+          category
+          cursor
+        }
       }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
       errors {
         source
         message
         code
+        retryable
       }
     }
   }
@@ -165,31 +177,34 @@ export const GET_PREFERENCES_DATA = gql`
 `;
 
 export const GET_NEWS_BY_CATEGORY = gql`
-  query GetNewsByCategory($category: String!, $location: String) {
-    newsByCategory(category: $category, location: $location) {
-      id
-      title
-      description
-      url
-      imageUrl
-      source
-      publishedAt
-      category
-    }
-  }
-`;
-
-export const SEARCH_NEWS = gql`
-  query SearchNews($keyword: String!, $location: String) {
-    searchNews(keyword: $keyword, location: $location) {
-      id
-      title
-      description
-      url
-      imageUrl
-      source
-      publishedAt
-      category
+  query GetNewsByCategory($category: String!, $location: String, $first: Int, $after: String) {
+    newsByCategory(category: $category, location: $location, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          title
+          description
+          url
+          imageUrl
+          source
+          publishedAt
+          category
+          cursor
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+      errors {
+        source
+        message
+        code
+        retryable
+      }
     }
   }
 `;
@@ -200,6 +215,12 @@ export const ANALYZE_ARTICLE = gql`
       summary
       sentiment
       sentimentLabel
+      confidence
+      entities {
+        name
+        type
+        confidence
+      }
     }
   }
 `;

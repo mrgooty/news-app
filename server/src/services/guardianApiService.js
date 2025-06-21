@@ -1,4 +1,4 @@
-const BaseNewsService = require('./baseNewsService');
+import BaseNewsService from './baseNewsService.js';
 
 /**
  * Service for fetching news from The Guardian API
@@ -44,92 +44,48 @@ class GuardianApiService extends BaseNewsService {
   }
 
   /**
-   * Get articles by category from The Guardian
-   * @param {string} category - Category name
-   * @param {string} location - Location code
-   * @param {number} limit - Maximum number of articles to return
-   * @returns {Promise<Array>} - Array of normalized articles
+   * Fetch articles by category
+   * @param {string} category - The category to fetch articles for
+   * @param {string} location - The location to fetch articles for
+   * @param {number} limit - The number of articles to return
+   * @param {number} offset - The offset for pagination
+   * @returns {Promise<Array>} - A promise that resolves to an array of articles
    */
-  async getArticlesByCategory(category, location = null, limit = 10) {
-    try {
-      const apiSection = this.mapCategory(category);
-      
-      const params = {
-        'section': apiSection || 'news',
-        'page-size': limit,
-        'show-fields': 'headline,trailText,bodyText,thumbnail,byline',
-        'order-by': 'newest',
-      };
-      
-      // The Guardian API doesn't support country filtering in the same way as other APIs
-      // We could use a tag for location if needed
-      if (location) {
-        const apiLocation = this.mapLocation(location);
-        if (apiLocation) {
-          params.tag = `world/${apiLocation}`;
-        }
-      }
-      
-      const response = await this.httpClient.get('/search', params);
-      
-      if (!response.response || !response.response.results || !Array.isArray(response.response.results)) {
-        console.error('[Guardian] Invalid response format:', response);
-        return [];
-      }
-      
-      return response.response.results.map(article => this.normalizeArticle(article, category));
-    } catch (error) {
-      console.error('[Guardian] Error fetching articles by category:', error.message);
-      return [];
-    }
+  async getArticlesByCategory(category, location, limit = 20, offset = 0) {
+    const page = offset ? Math.floor(offset / limit) + 1 : 1;
+    const params = {
+      section: this.mapCategory(category),
+      'production-office': this.mapLocation(location),
+      'page-size': limit,
+      page,
+      'show-fields': 'trailText,bodyText,thumbnail',
+    };
+    return this.fetch('search', params, category);
   }
 
   /**
-   * Search for articles using The Guardian API
-   * @param {string} query - Search query
-   * @param {string} category - Optional category filter
-   * @param {string} location - Optional location filter
-   * @param {number} limit - Maximum number of articles to return
-   * @returns {Promise<Array>} - Array of normalized articles
+   * Search for articles
+   * @param {string} query - The search query
+   * @param {string} category - The category to search in
+   * @param {string} location - The location to search in
+   * @param {number} limit - The number of articles to return
+   * @param {number} offset - The offset for pagination
+   * @returns {Promise<Array>} - A promise that resolves to an array of articles
    */
-  async searchArticles(query, category = null, location = null, limit = 10) {
-    try {
-      const params = {
-        'q': query,
-        'page-size': limit,
-        'show-fields': 'headline,trailText,bodyText,thumbnail,byline',
-        'order-by': 'relevance',
-        'from-date': this.getDateDaysAgo(30), // Last 30 days
-      };
-      
-      // Add section filter if category is provided
-      if (category) {
-        const apiSection = this.mapCategory(category);
-        if (apiSection) {
-          params.section = apiSection;
-        }
-      }
-      
-      // Add location filter if provided
-      if (location) {
-        const apiLocation = this.mapLocation(location);
-        if (apiLocation) {
-          params.tag = `world/${apiLocation}`;
-        }
-      }
-      
-      const response = await this.httpClient.get('/search', params);
-      
-      if (!response.response || !response.response.results || !Array.isArray(response.response.results)) {
-        console.error('[Guardian] Invalid response format:', response);
-        return [];
-      }
-      
-      return response.response.results.map(article => this.normalizeArticle(article, category));
-    } catch (error) {
-      console.error('[Guardian] Error searching articles:', error.message);
-      return [];
+  async searchArticles(query, category, location, limit = 20, offset = 0) {
+    const page = offset ? Math.floor(offset / limit) + 1 : 1;
+    let q = query;
+    if (category) {
+      q += ` AND section:${this.mapCategory(category)}`;
     }
+    const params = {
+      q,
+      'production-office': this.mapLocation(location),
+      'page-size': limit,
+      page,
+      'show-fields': 'trailText,bodyText,thumbnail',
+    };
+    return this.fetch('search', params, category);
   }
 
   /**
@@ -193,4 +149,4 @@ class GuardianApiService extends BaseNewsService {
   }
 }
 
-module.exports = GuardianApiService;
+export default GuardianApiService;

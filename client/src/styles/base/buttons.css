@@ -1,0 +1,63 @@
+/* Button Styles */
+
+/* Refresh Button */
+.refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: #f8f9fa;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5f6368;
+  cursor: pointer;
+}
+
+.refresh-button:hover {
+  background-color: #f1f3f4;
+}
+
+.refresh-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.button-icon {
+  font-size: 16px;
+}
+
+.dark-mode .refresh-button {
+  background-color: #303134;
+  border-color: #3c4043;
+  color: #9aa0a6;
+}
+
+.dark-mode .refresh-button:hover {
+  background-color: #3c4043;
+}
+
+/* CTA Button */
+.cta-button {
+  display: inline-block;
+  padding: 12px 24px;
+  background-color: #1a73e8;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.cta-button:hover {
+  background-color: #1765cc;
+}
+
+.dark-mode .cta-button {
+  background-color: #64b5f6;
+}
+
+.dark-mode .cta-button:hover {
+  background-color: #4a9bed;
+} 

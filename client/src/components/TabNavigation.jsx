@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { setActiveTab } from '../store/slices/uiStateSlice';
+import { prefetchCategory } from '../store/slices/newsDataSlice';
 import '../styles/main.css';
 
 function TabNavigation({ categories = [] }) {
@@ -10,6 +11,8 @@ function TabNavigation({ categories = [] }) {
   const tabsRef = useRef(null);
   const { selectedCategories, isLoaded } = useAppSelector((state) => state.userPreferences);
   const activeTab = useAppSelector((state) => state.uiState.activeTab);
+  
+  const [prefetching, setPrefetching] = useState(null);
   
   // Use selected categories if loaded and available, otherwise show no category tabs
   const displayCategories = isLoaded && selectedCategories.length > 0
@@ -48,6 +51,17 @@ function TabNavigation({ categories = [] }) {
     dispatch(setActiveTab(tabId));
   };
 
+  const handleMouseEnter = (categoryId) => {
+    if (prefetching !== categoryId) {
+      setPrefetching(categoryId);
+      dispatch(prefetchCategory(categoryId));
+    }
+  };
+  
+  const handleMouseLeave = () => {
+    setPrefetching(null);
+  };
+
   return (
     <div className="tab-navigation-container">
       <div className="tabs-wrapper">
@@ -64,6 +78,8 @@ function TabNavigation({ categories = [] }) {
               key={category.id}
               className={`tab-item ${activeTab === category.id ? 'active' : ''}`}
               onClick={() => handleTabClick(category.id)}
+              onMouseEnter={() => handleMouseEnter(category.id)}
+              onMouseLeave={handleMouseLeave}
             >
               <Link to={`/category/${category.id}`}>{category.name}</Link>
             </div>

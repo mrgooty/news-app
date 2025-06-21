@@ -1,11 +1,12 @@
+import config from '../config/config.js';
+import createLogger from '../utils/logger.js';
+
+const logger = createLogger('EnhancedCacheManager');
+
 /**
  * Enhanced Cache Manager for AI-processed news articles
  * Provides efficient in-memory caching with improved performance
  */
-const config = require('../config/config');
-const createLogger = require('../utils/logger');
-const log = createLogger('EnhancedCacheManager');
-
 class EnhancedCacheManager {
   constructor(options = {}) {
     // In-memory cache
@@ -145,7 +146,7 @@ class EnhancedCacheManager {
     }
     
     if (expiredCount > 0) {
-      log(`Cleaned up ${expiredCount} expired cache items. Current cache size: ${this.memoryCache.size}`);
+      logger(`Cleaned up ${expiredCount} expired cache items. Current cache size: ${this.memoryCache.size}`);
     }
   }
 
@@ -165,7 +166,7 @@ class EnhancedCacheManager {
     
     if (oldestKey) {
       this.memoryCache.delete(oldestKey);
-      log(`Evicted oldest cache item: ${oldestKey}`);
+      logger(`Evicted oldest cache item: ${oldestKey}`);
     }
   }
 
@@ -237,4 +238,4 @@ class EnhancedCacheManager {
   }
 }
 
-module.exports = EnhancedCacheManager;
+export default EnhancedCacheManager;

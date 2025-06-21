@@ -1,9 +1,9 @@
-const { ChatOpenAI } = require('@langchain/openai');
-const { StringOutputParser } = require('@langchain/core/output_parsers');
-const { ChatPromptTemplate } = require('@langchain/core/prompts');
-const { StructuredOutputParser } = require('@langchain/core/output_parsers');
-const { z } = require('zod');
-const config = require('../config/config');
+import { ChatOpenAI } from '@langchain/openai';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { StructuredOutputParser } from '@langchain/core/output_parsers';
+import { z } from 'zod';
+import config from '../config/config.js';
 
 /**
  * News Processor using LangChain
@@ -192,4 +192,4 @@ class NewsProcessor {
   }
 }
 
-module.exports = NewsProcessor;
+export default NewsProcessor;

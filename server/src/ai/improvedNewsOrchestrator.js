@@ -1,9 +1,10 @@
-const { StateGraph } = require('@langchain/langgraph');
-const ImprovedNewsProcessor = require('./improvedNewsProcessor');
-const EnhancedCacheManager = require('./enhancedCacheManager');
-const config = require('../config/config');
-const createLogger = require('../utils/logger');
-const log = createLogger('ImprovedNewsOrchestrator');
+import { StateGraph } from '@langchain/langgraph';
+import ImprovedNewsProcessor from './improvedNewsProcessor.js';
+import EnhancedCacheManager from './enhancedCacheManager.js';
+import config from '../config/config.js';
+import createLogger from '../utils/logger.js';
+
+const logger = createLogger('ImprovedNewsOrchestrator');
 
 /**
  * Improved News Orchestrator using LangGraph
@@ -72,7 +73,7 @@ class ImprovedNewsOrchestrator {
           processingSteps: { ...state.processingSteps, summarize: true },
         };
       } catch (error) {
-        log(`Error in summarize: ${error.message}`);
+        logger(`Error in summarize: ${error.message}`);
         return {
           error: `Error in summarize: ${error.message}`,
           processingSteps: { ...state.processingSteps, summarize: true },
@@ -127,7 +128,7 @@ class ImprovedNewsOrchestrator {
           processingSteps: { ...state.processingSteps, categorize: true },
         };
       } catch (error) {
-        log(`Error in categorize: ${error.message}`);
+        logger(`Error in categorize: ${error.message}`);
         return {
           error: state.error || `Error in categorize: ${error.message}`,
           processingSteps: { ...state.processingSteps, categorize: true },
@@ -171,7 +172,7 @@ class ImprovedNewsOrchestrator {
           processingSteps: { ...state.processingSteps, extractInfo: true },
         };
       } catch (error) {
-        log(`Error in extractInfo: ${error.message}`);
+        logger(`Error in extractInfo: ${error.message}`);
         return {
           error: state.error || `Error in extractInfo: ${error.message}`,
           processingSteps: { ...state.processingSteps, extractInfo: true },
@@ -223,7 +224,7 @@ class ImprovedNewsOrchestrator {
           processingSteps: { ...state.processingSteps, calculateScore: true },
         };
       } catch (error) {
-        log(`Error in calculateScore: ${error.message}`);
+        logger(`Error in calculateScore: ${error.message}`);
         return {
           error: state.error || `Error in calculateScore: ${error.message}`,
           processingSteps: { ...state.processingSteps, calculateScore: true },
@@ -240,7 +241,7 @@ class ImprovedNewsOrchestrator {
   async processArticle(article) {
     // Skip processing if article is missing essential data
     if (!article || (!article.title && !article.url)) {
-      log('Warning: Skipping article processing due to missing data');
+      logger('Warning: Skipping article processing due to missing data');
       return article;
     }
     
@@ -260,7 +261,7 @@ class ImprovedNewsOrchestrator {
       
       return result.article;
     } catch (error) {
-      log(`Error processing article: ${error.message}`);
+      logger(`Error processing article: ${error.message}`);
       return {
         ...article,
         processingError: error.message,
@@ -332,7 +333,7 @@ class ImprovedNewsOrchestrator {
       
       // Process articles not in cache
       if (articlesToProcess.length > 0) {
-        log(`Processing ${articlesToProcess.length} uncached articles in batches`);
+        logger(`Processing ${articlesToProcess.length} uncached articles in batches`);
         const newlyProcessed = await this.processBatchWithThrottling(articlesToProcess);
         
         // Cache the newly processed articles and place them in the correct positions
@@ -352,7 +353,7 @@ class ImprovedNewsOrchestrator {
       // Sort by finalScore in descending order
       return validArticles.sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0));
     } catch (error) {
-      log(`Error in processBatch: ${error.message}`);
+      logger(`Error in processBatch: ${error.message}`);
       // Return original articles if processing fails
       return articles;
     }
@@ -409,7 +410,7 @@ class ImprovedNewsOrchestrator {
       
       return result;
     } catch (error) {
-      log(`Error in deduplicateArticles: ${error.message}`);
+      logger(`Error in deduplicateArticles: ${error.message}`);
       // Return original articles if deduplication fails
       return articles;
     }
@@ -458,7 +459,7 @@ class ImprovedNewsOrchestrator {
       // Limit to the total number requested
       return aggregatedArticles.slice(0, totalLimit);
     } catch (error) {
-      log(`Error in aggregateTopStories: ${error.message}`);
+      logger(`Error in aggregateTopStories: ${error.message}`);
       
       // Fallback: return a simple aggregation of articles
       const allArticles = Object.values(articlesByCategory).flat();
@@ -491,4 +492,29 @@ class ImprovedNewsOrchestrator {
   }
 }
 
-module.exports = ImprovedNewsOrchestrator;
+// Create a singleton instance
+const orchestrator = new ImprovedNewsOrchestrator();
+
+/**
+ * Get enhanced news using the orchestrator
+ * @param {Array} articles - Array of news articles to process
+ * @returns {Promise<Array>} - Enhanced and processed articles
+ */
+export async function getEnhancedNews(articles) {
+  try {
+    if (!articles || articles.length === 0) {
+      return [];
+    }
+    
+    // Process the articles through the orchestrator
+    const processedArticles = await orchestrator.processBatch(articles);
+    
+    return processedArticles;
+  } catch (error) {
+    logger(`Error in getEnhancedNews: ${error.message}`);
+    // Return original articles if processing fails
+    return articles;
+  }
+}
+
+export default ImprovedNewsOrchestrator;

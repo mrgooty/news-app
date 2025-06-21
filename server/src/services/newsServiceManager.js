@@ -1,9 +1,14 @@
-const NewsApiService = require('./newsApiService');
-const GNewsApiService = require('./gnewsApiService');
-const GuardianApiService = require('./guardianApiService');
-const createLogger = require("../utils/logger");
-const log = createLogger("NewsServiceManager");
-const config = require('../config/config');
+import config from '../config/config.js';
+import log from '../utils/logger.js';
+import { deduplicateArticles, createArticleError } from '../utils/articleUtils.js';
+import NewsAPIService from './newsApiService.js';
+import GNewsAPIService from './gnewsApiService.js';
+import GuardianAPIService from './guardianApiService.js';
+import NyTimesApiService from './nyTimesApiService.js';
+import WorldNewsApiService from './worldNewsApiService.js';
+import WeatherstackApiService from './weatherstackApiService.js';
+
+const logger = log('NewsServiceManager');
 
 /**
  * Manager for handling multiple news API services with fallback
@@ -12,103 +17,71 @@ class NewsServiceManager {
   constructor() {
     // Initialize all news services
     this.services = {
-      newsapi: new NewsApiService(),
-      gnews: new GNewsApiService(),
-      guardian: new GuardianApiService(),
+      newsapi: new NewsAPIService('newsapi'),
+      gnews: new GNewsAPIService('gnews'),
+      guardian: new GuardianAPIService('guardian'),
+      nytimes: new NyTimesApiService('nytimes'),
+      worldnewsapi: new WorldNewsApiService('worldnewsapi'),
+      weatherstack: new WeatherstackApiService('weatherstack'),
     };
     
     // Track available services
     this.availableServices = {};
     
     // Default service order for fallback
-    this.serviceOrder = ['newsapi', 'gnews', 'guardian'];
+    this.serviceOrder = ['newsapi', 'gnews', 'guardian', 'nytimes', 'worldnewsapi', 'weatherstack'];
     
-    // Initialize service availability unless running tests
-    // if (process.env.NODE_ENV !== 'test') {
-    //   this.checkServicesAvailability();
-    // }
+    // Check service availability on initialization
+    this.checkServicesAvailability();
+
+    this.serviceCheckInterval = 60 * 60 * 1000; // 1 hour
+    this.serviceCheckTimeout = null;
+    this.init();
   }
 
   /**
    * Initialize the service manager by checking service availability
    */
-  async init() {
-    if (process.env.NODE_ENV !== 'test') {
-      await this.checkServicesAvailability();
-    }
+  init() {
+    clearTimeout(this.serviceCheckTimeout);
+    this.checkServicesAvailability();
+    // Schedule the next check
+    this.serviceCheckTimeout = setTimeout(() => this.init(), this.serviceCheckInterval);
   }
 
   /**
-   * Check which services are available (have valid API keys)
+   * Check which services are available based on API key configuration
    */
   async checkServicesAvailability() {
-    log("Checking API service availability...");
+    logger('Checking service availability...');
     
-    for (const [name, service] of Object.entries(this.services)) {
-      const apiKey = config.newsApis[name]?.apiKey;
-
-      if (!apiKey) {
-        this.availableServices[name] = false;
-        log(`${name} API key is missing. Service will be unavailable.`);
-        continue;
-      }
-
-      // Check if the API key looks like a placeholder
-      if (apiKey.includes('your_') || apiKey.includes('test_')) {
-        log(`Warning: ${name} API key appears to be a placeholder. Service may not work correctly.`);
-      }
-
-      // Assume the service is available if an API key exists
-      this.availableServices[name] = true;
-
+    for (const [serviceName, service] of Object.entries(this.services)) {
       try {
         const isAvailable = await service.isAvailable();
-        this.availableServices[name] = isAvailable;
-        
-        if (isAvailable) {
-          log(`${name} API is available and responding correctly.`);
-        } else {
-          log(`${name} API is not available. Check your API key and network connection.`);
-        }
+        this.availableServices[serviceName] = isAvailable;
+        logger(`${serviceName} availability: ${isAvailable}`);
       } catch (error) {
-        // Network checks might fail in restricted environments
-        // so log the error but keep the service enabled
-        log(
-          `Could not verify ${name} availability: ${error.message}`
-        );
-        
-        // If the error suggests an invalid API key, mark as unavailable
-        if (error.message.includes('401') || 
-            error.message.includes('403') || 
-            error.message.includes('invalid') || 
-            error.message.includes('API key')) {
-          this.availableServices[name] = false;
-          log(`${name} API key appears to be invalid. Service will be unavailable.`);
-        }
+        logger(`Error checking ${serviceName} availability: ${error.message}`);
+        this.availableServices[serviceName] = true; // Default to true to allow fallback
       }
-    }
-    
-    // Log overall availability
-    const availableCount = Object.values(this.availableServices).filter(Boolean).length;
-    log(`${availableCount} out of ${Object.keys(this.services).length} news services are available.`);
-    
-    if (availableCount === 0) {
-      log("WARNING: No news services are available. The application will use sample data.");
     }
   }
 
   /**
-   * Get a list of available services
-   * @param {Array} preferredServices - Optional list of preferred service names
-   * @returns {Array} - List of available service names in order of preference
+   * Get list of available services in preferred order
+   * @param {Array} preferredOrder - Optional preferred service order
+   * @returns {Array} - List of available service names
    */
-  getAvailableServices(preferredServices = null) {
-    const serviceOrder = preferredServices || this.serviceOrder;
-
-    const available = serviceOrder.filter(name => this.availableServices[name]);
-
-    // If no services were marked available, try them all in order
-    return available.length > 0 ? available : serviceOrder;
+  getAvailableServices(preferredOrder = null) {
+    const order = preferredOrder || this.serviceOrder;
+    const available = order.filter(serviceName => this.availableServices[serviceName]);
+    
+    // If no services are marked as available, return all services for fallback
+    if (available.length === 0) {
+      return order;
+    }
+    
+    return available;
   }
 
   /**
@@ -116,27 +89,28 @@ class NewsServiceManager {
    * @param {string} category - Category name
    * @param {string} location - Location code
    * @param {number} limit - Maximum number of articles to return
+   * @param {number} offset - Offset for pagination
    * @param {Array} sources - Optional list of preferred sources
    * @returns {Promise<Object>} - Object with articles and errors
    */
-  async getArticlesByCategory(category, location = null, limit = 10, sources = null) {
+  async getArticlesByCategory(category, location = null, limit = 20, offset = 0, sources = null) {
     const availableServices = this.getAvailableServices(sources);
     const articles = [];
     const errors = [];
     
-    log(`Fetching articles for category: ${category}, location: ${location}, limit: ${limit}`);
-    log(`Trying services in order: ${availableServices.join(', ')}`);
+    logger(`Fetching articles for category: ${category}, location: ${location}, limit: ${limit}, offset: ${offset}`);
+    logger(`Trying services in order: ${availableServices.join(', ')}`);
     
     // Try each service in order until we get results or run out of services
     for (const serviceName of availableServices) {
       try {
         const service = this.services[serviceName];
-        log(`Trying ${serviceName} for articles in category ${category}...`);
+        logger(`Trying ${serviceName} for articles in category ${category}...`);
         
-        const serviceArticles = await service.getArticlesByCategory(category, location, limit);
+        const serviceArticles = await service.getArticlesByCategory(category, location, limit, offset);
         
         if (serviceArticles && serviceArticles.length > 0) {
-          log(`Retrieved ${serviceArticles.length} articles from ${serviceName}`);
+          logger(`Retrieved ${serviceArticles.length} articles from ${serviceName}`);
           articles.push(...serviceArticles);
           
           // If we have enough articles, stop trying more services
@@ -144,32 +118,20 @@ class NewsServiceManager {
             break;
           }
         } else {
-          log(`No articles found from ${serviceName} for category ${category}`);
+          logger(`No articles found from ${serviceName} for category ${category}`);
         }
       } catch (error) {
-        log(`Error fetching from ${serviceName}: ${error.message}`);
-        errors.push({
-          source: serviceName,
-          message: error.message,
-          code: error.code || 'ERROR',
-        });
+        logger(`Error fetching from ${serviceName}: ${error.message}`);
+        errors.push(createArticleError(serviceName, error.message, error.code || 'ERROR'));
       }
     }
     
-    // Deduplicate articles by URL
-    const uniqueArticles = this.deduplicateArticles(articles);
-    log(`After deduplication: ${uniqueArticles.length} unique articles`);
+    // Deduplicate articles by URL using centralized utility
+    const uniqueArticles = deduplicateArticles(articles);
+    logger(`After deduplication: ${uniqueArticles.length} unique articles`);
 
     // Limit to the requested number
-    let limitedArticles = uniqueArticles.slice(0, limit);
-
-    if (limitedArticles.length === 0) {
-      // Fallback to local sample data when no articles are retrieved
-      log(`No articles retrieved from any service. Using sample data.`);
-      limitedArticles = sampleArticles
-        .filter(article => !category || article.category === category)
-        .slice(0, limit);
-    }
+    const limitedArticles = uniqueArticles.slice(0, limit);
 
     return {
       articles: limitedArticles,
@@ -183,27 +145,28 @@ class NewsServiceManager {
    * @param {string} category - Optional category filter
    * @param {string} location - Optional location filter
    * @param {number} limit - Maximum number of articles to return
+   * @param {number} offset - Offset for pagination
    * @param {Array} sources - Optional list of preferred sources
    * @returns {Promise<Object>} - Object with articles and errors
    */
-  async searchArticles(query, category = null, location = null, limit = 10, sources = null) {
+  async searchArticles(query, category = null, location = null, limit = 20, offset = 0, sources = null) {
     const availableServices = this.getAvailableServices(sources);
     const articles = [];
     const errors = [];
     
-    log(`Searching for articles with query: ${query}, category: ${category}, location: ${location}, limit: ${limit}`);
-    log(`Trying services in order: ${availableServices.join(', ')}`);
+    logger(`Searching for articles with query: ${query}, category: ${category}, location: ${location}, limit: ${limit}, offset: ${offset}`);
+    logger(`Trying services in order: ${availableServices.join(', ')}`);
     
     // Try each service in order until we get results or run out of services
     for (const serviceName of availableServices) {
       try {
         const service = this.services[serviceName];
-        log(`Trying ${serviceName} for search query "${query}"...`);
+        logger(`Trying ${serviceName} for search query "${query}"...`);
         
-        const serviceArticles = await service.searchArticles(query, category, location, limit);
+        const serviceArticles = await service.searchArticles(query, category, location, limit, offset);
         
         if (serviceArticles && serviceArticles.length > 0) {
-          log(`Retrieved ${serviceArticles.length} articles from ${serviceName}`);
+          logger(`Retrieved ${serviceArticles.length} articles from ${serviceName}`);
           articles.push(...serviceArticles);
           
           // If we have enough articles, stop trying more services
@@ -211,38 +174,20 @@ class NewsServiceManager {
             break;
           }
         } else {
-          log(`No articles found from ${serviceName} for search query "${query}"`);
+          logger(`No articles found from ${serviceName} for search query "${query}"`);
         }
       } catch (error) {
-        log(`Error searching with ${serviceName}: ${error.message}`);
-        errors.push({
-          source: serviceName,
-          message: error.message,
-          code: error.code || 'ERROR',
-        });
+        logger(`Error searching with ${serviceName}: ${error.message}`);
+        errors.push(createArticleError(serviceName, error.message, error.code || 'ERROR'));
       }
     }
     
-    // Deduplicate articles by URL
-    const uniqueArticles = this.deduplicateArticles(articles);
-    log(`After deduplication: ${uniqueArticles.length} unique articles`);
+    // Deduplicate articles by URL using centralized utility
+    const uniqueArticles = deduplicateArticles(articles);
+    logger(`After deduplication: ${uniqueArticles.length} unique articles`);
 
     // Limit to the requested number
-    let limitedArticles = uniqueArticles.slice(0, limit);
-
-    if (limitedArticles.length === 0) {
-      // Fallback to local sample data when no articles are retrieved
-      log(`No articles retrieved from any service. Using sample data.`);
-      limitedArticles = sampleArticles
-        .filter(article => {
-          // Simple text search in title and description
-          const searchText = `${article.title} ${article.description}`.toLowerCase();
-          const queryMatch = searchText.includes(query.toLowerCase());
-          const categoryMatch = !category || article.category === category;
-          return queryMatch && categoryMatch;
-        })
-        .slice(0, limit);
-    }
+    const limitedArticles = uniqueArticles.slice(0, limit);
 
     return {
       articles: limitedArticles,
@@ -263,19 +208,19 @@ class NewsServiceManager {
     const articles = [];
     const errors = [];
     
-    log(`Fetching top headlines with category: ${category}, location: ${location}, limit: ${limit}`);
-    log(`Trying services in order: ${availableServices.join(', ')}`);
+    logger(`Fetching top headlines with category: ${category}, location: ${location}, limit: ${limit}`);
+    logger(`Trying services in order: ${availableServices.join(', ')}`);
     
     // Try each service in order until we get results or run out of services
     for (const serviceName of availableServices) {
       try {
         const service = this.services[serviceName];
-        log(`Trying ${serviceName} for top headlines...`);
+        logger(`Trying ${serviceName} for top headlines...`);
         
         const serviceArticles = await service.getTopHeadlines(category, location, limit);
         
         if (serviceArticles && serviceArticles.length > 0) {
-          log(`Retrieved ${serviceArticles.length} articles from ${serviceName}`);
+          logger(`Retrieved ${serviceArticles.length} articles from ${serviceName}`);
           articles.push(...serviceArticles);
           
           // If we have enough articles, stop trying more services
@@ -283,32 +228,20 @@ class NewsServiceManager {
             break;
           }
         } else {
-          log(`No articles found from ${serviceName} for top headlines`);
+          logger(`No articles found from ${serviceName} for top headlines`);
         }
       } catch (error) {
-        log(`Error fetching top headlines from ${serviceName}: ${error.message}`);
-        errors.push({
-          source: serviceName,
-          message: error.message,
-          code: error.code || 'ERROR',
-        });
+        logger(`Error fetching top headlines from ${serviceName}: ${error.message}`);
+        errors.push(createArticleError(serviceName, error.message, error.code || 'ERROR'));
       }
     }
     
-    // Deduplicate articles by URL
-    const uniqueArticles = this.deduplicateArticles(articles);
-    log(`After deduplication: ${uniqueArticles.length} unique articles`);
+    // Deduplicate articles by URL using centralized utility
+    const uniqueArticles = deduplicateArticles(articles);
+    logger(`After deduplication: ${uniqueArticles.length} unique articles`);
 
     // Limit to the requested number
-    let limitedArticles = uniqueArticles.slice(0, limit);
-
-    if (limitedArticles.length === 0) {
-      // Fallback to local sample data when no articles are retrieved
-      log(`No articles retrieved from any service. Using sample data.`);
-      limitedArticles = sampleArticles
-        .filter(article => !category || article.category === category)
-        .slice(0, limit);
-    }
+    const limitedArticles = uniqueArticles.slice(0, limit);
 
     return {
       articles: limitedArticles,
@@ -317,78 +250,86 @@ class NewsServiceManager {
   }
 
   /**
-   * Get available categories across all services
-   * @returns {Array} - List of category objects
+   * Get available categories from configuration
+   * @returns {Array} - List of available categories
    */
   getCategories() {
-    // These are standard categories available in most news APIs
-    return CATEGORIES;
+    return config.appData.categories || [];
   }
 
   /**
-   * Get available locations
-   * @returns {Array} - List of location objects
+   * Get available locations from configuration
+   * @returns {Array} - List of available locations
    */
   getLocations() {
-    return LOCATIONS;
+    return config.appData.locations || [];
   }
 
   /**
-   * Get available news sources
-   * @returns {Array} - List of source objects
+   * Get source information with availability status
+   * @returns {Array} - List of sources with availability
    */
   getSources() {
-    const allSources = [
-      { id: 'newsapi', name: 'NewsAPI.org', description: 'Comprehensive news API' },
-      { id: 'gnews', name: 'GNews', description: 'Global news API' },
-      { id: 'guardian', name: 'The Guardian', description: 'The Guardian news API' },
-    ];
-    
-    // Filter to only show sources that are available or potentially available
-    return allSources.map(source => {
-      const isAvailable = this.availableServices[source.id];
-      return {
-        ...source,
-        available: isAvailable,
-        description: isAvailable 
-          ? source.description 
-          : `${source.description} (API key not configured or invalid)`
-      };
-    });
+    return Object.entries(this.services).map(([id, service]) => ({
+      id,
+      name: service.constructor.name.replace('Service', ''),
+      available: this.availableServices[id] || false
+    }));
   }
 
   /**
-   * Deduplicate articles by URL
-   * @param {Array} articles - List of articles
-   * @returns {Array} - Deduplicated list of articles
-   */
-  deduplicateArticles(articles) {
-    const uniqueUrls = new Set();
-    return articles.filter(article => {
-      if (!article.url || uniqueUrls.has(article.url)) {
-        return false;
-      }
-      uniqueUrls.add(article.url);
-      return true;
-    });
-  }
-  
-  /**
-   * Force a refresh of service availability
-   * @returns {Promise<Object>} - Object with service availability status
-   */
-  async refreshServiceAvailability() {
-    await this.checkServicesAvailability();
-    return this.getServiceStatus();
-  }
-  
-  /**
-   * Get the current status of all services
-   * @returns {Object} - Object with service availability status
+   * Get service status for monitoring
+   * @returns {Object} - Service availability status
    */
   getServiceStatus() {
-    return this.availableServices;
+    return { ...this.availableServices };
+  }
+
+  // Legacy method for backward compatibility - now uses centralized utility
+  deduplicateArticles(articles) {
+    return deduplicateArticles(articles);
   }
 }
 
-module.exports = new NewsServiceManager();
+// Create a singleton instance
+const newsServiceManager = new NewsServiceManager();
+
+// Wrapper functions for API routes
+export const getNews = (options) => newsServiceManager.getArticlesByCategory(
+  options.category,
+  options.location,
+  options.limit,
+  options.offset,
+  options.sources,
+);
+
+export const searchNews = (options) => newsServiceManager.searchArticles(
+  options.query,
+  options.category,
+  options.location,
+  options.limit,
+  options.offset,
+  options.sources,
+);
+
+export const getTopHeadlines = (options) => newsServiceManager.getTopHeadlines(
+  options.category,
+  options.location,
+  options.limit,
+  options.sources,
+);
+
+export async function scrapeArticle(url) {
+  // This would need to be implemented or imported from another service
+  throw new Error('Article scraping not implemented');
+}
+
+export function getPreferencesDefaults() {
+  return {
+    categories: newsServiceManager.getCategories(),
+    locations: newsServiceManager.getLocations(),
+    sources: newsServiceManager.getSources(),
+  };
+}
+
+export default newsServiceManager;

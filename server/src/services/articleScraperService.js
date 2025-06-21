@@ -1,5 +1,7 @@
-const puppeteer = require('puppeteer');
-const log = require('../utils/logger')('ArticleScraperService');
+import puppeteer from 'puppeteer';
+import log from '../utils/logger.js';
+
+const logger = log('ArticleScraperService');
 
 // Common selectors for cookie consent banners
 const COOKIE_SELECTORS = [
@@ -16,7 +18,7 @@ const COOKIE_SELECTORS = [
 class ArticleScraperService {
   async scrape(url) {
     let browser;
-    log(`Initializing scraper for URL: ${url}`);
+    logger(`Initializing scraper for URL: ${url}`);
     try {
       browser = await puppeteer.launch({
         headless: true,
@@ -46,7 +48,7 @@ class ArticleScraperService {
       for (const selector of COOKIE_SELECTORS) {
         try {
             await page.click(selector, { timeout: 1000 });
-            log(`Clicked a cookie consent element matching: ${selector}`);
+            logger(`Clicked a cookie consent element matching: ${selector}`);
             await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 }).catch(() => {});
             break; // Exit loop once a button is clicked
         } catch (error) {
@@ -90,27 +92,27 @@ class ArticleScraperService {
       });
 
       if (!articleContent.content || articleContent.content.length < 200) {
-        log(`WARN: Scraped text for ${url} seems insufficient. It might be a paywall or requires JavaScript rendering wait.`);
+        logger(`WARN: Scraped text for ${url} seems insufficient. It might be a paywall or requires JavaScript rendering wait.`);
         return 'Could not extract a meaningful article. The page may be behind a paywall, require a login, or have a complex structure that prevented analysis.';
       }
 
-      log(`Successfully scraped and extracted content from ${url}`);
+      logger(`Successfully scraped and extracted content from ${url}`);
       // Return the main content, prepended by its title for better summarization context
       return `${articleContent.title}\n\n${articleContent.content}`;
 
     } catch (error) {
-      log(`ERROR: Error scraping article from ${url}:`, error.message);
+      logger(`ERROR: Error scraping article from ${url}:`, error.message);
       if (error.name === 'TimeoutError') {
           return 'Failed to scrape article: The page took too long to load and timed out.';
       }
       return `Failed to scrape article. The site may be blocking automated access or is unavailable.`;
     } finally {
       if (browser) {
-        log('Closing browser instance.');
+        logger('Closing browser instance.');
         await browser.close();
       }
     }
   }
 }
 
-module.exports = new ArticleScraperService(); 
+export default ArticleScraperService; 

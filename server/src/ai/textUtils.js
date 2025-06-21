@@ -1,6 +1,6 @@
-const { Embeddings } = require('@langchain/core/embeddings');
-const { OpenAIEmbeddings } = require('@langchain/openai');
-const config = require('../config/config');
+import { Embeddings } from '@langchain/core/embeddings';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import config from '../config/config.js';
 
 /**
  * Utility functions for text processing and analysis
@@ -205,4 +205,4 @@ class TextUtils {
   }
 }
 
-module.exports = TextUtils;
+export default TextUtils;

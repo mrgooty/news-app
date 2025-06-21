@@ -1,156 +1,148 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { client as apolloClient } from "../../graphql/client";
+import { GET_ARTICLES_BY_CATEGORY, SEARCH_ARTICLES, GET_TOP_STORIES_ACROSS_CATEGORIES } from "../../graphql/queries";
+import { deduplicateArticles } from "../../lib/utils.js";
 
-// Async thunk for fetching news by category
-export const fetchNewsByCategory = createAsyncThunk(
-  'newsData/fetchNewsByCategory',
-  async ({ category, location }, { getState, rejectWithValue }) => {
+const initialState = {
+  articles: [],
+  loading: false,
+  error: null,
+  hasMore: true,
+  endCursor: null,
+  prefetched: {},
+};
+
+const ARTICLE_LIMIT = 20;
+
+export const fetchAllNews = createAsyncThunk(
+  "news/fetchAllNews",
+  async ({ categories, location, after = null }, { rejectWithValue }) => {
     try {
-      // Check cache first
-      const state = getState();
-      const cachedData = state.newsData.cache[`${category}-${location}`];
-      const cacheTime = state.newsData.cacheTime[`${category}-${location}`];
-      
-      // Cache for 5 minutes
-      if (cachedData && cacheTime && Date.now() - cacheTime < 5 * 60 * 1000) {
-        return { category, location, articles: cachedData, fromCache: true };
-      }
-
-      // Fetch from API
-      const response = await fetch(`/graphql`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: `
-            query GetNewsByCategory($category: String!, $location: String) {
-              newsByCategory(category: $category, location: $location) {
-                id
-                title
-                description
-                url
-                imageUrl
-                source
-                publishedAt
-                category
-              }
-            }
-          `,
-          variables: { category, location },
-        }),
+      const { data } = await apolloClient.query({
+        query: GET_TOP_STORIES_ACROSS_CATEGORIES,
+        variables: { categories, location, first: ARTICLE_LIMIT, after },
       });
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const data = await response.json();
-      
-      if (data.errors) {
-        throw new Error(data.errors[0].message);
-      }
-
-      return {
-        category,
-        location,
-        articles: data.data.newsByCategory || [],
-        fromCache: false,
-      };
+      const articles = data.topStoriesAcrossCategories.edges.map(edge => edge.node);
+      const pageInfo = data.topStoriesAcrossCategories.pageInfo;
+      return { articles, pageInfo, endCursor: pageInfo.endCursor };
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
 
-// Async thunk for fetching all news for home page
-export const fetchAllNews = createAsyncThunk(
-  'newsData/fetchAllNews',
-  async ({ categories, location }, { dispatch, rejectWithValue }) => {
+export const fetchNewsByCategory = createAsyncThunk(
+  "news/fetchNewsByCategory",
+  async ({ category, location, after = null }, { rejectWithValue }) => {
     try {
-      const promises = categories.map(category =>
-        dispatch(fetchNewsByCategory({ category, location })).unwrap()
-      );
-      
-      const results = await Promise.all(promises);
-      
-      // Combine all articles and remove duplicates
-      const allArticles = results.flatMap(result => result.articles);
-      const uniqueArticles = Array.from(
-        new Map(allArticles.map(article => [article.url, article])).values()
-      );
-      
-      // Sort by published date
-      uniqueArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-      
-      return uniqueArticles;
+      const { data } = await apolloClient.query({
+        query: GET_ARTICLES_BY_CATEGORY,
+        variables: { category, location, first: ARTICLE_LIMIT, after },
+      });
+      const articles = data.newsByCategory.edges.map(edge => edge.node);
+      const pageInfo = data.newsByCategory.pageInfo;
+      return { articles, pageInfo, endCursor: pageInfo.endCursor };
     } catch (error) {
       return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const searchNews = createAsyncThunk(
+  "news/searchNews",
+  async ({ query, location, after = null }, { rejectWithValue }) => {
+    try {
+      const { data } = await apolloClient.query({
+        query: SEARCH_ARTICLES,
+        variables: { query, location, first: ARTICLE_LIMIT, after },
+      });
+      const articles = data.searchNews.edges.map(edge => edge.node);
+      const pageInfo = data.searchNews.pageInfo;
+      return { articles, pageInfo, endCursor: pageInfo.endCursor };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const prefetchCategory = createAsyncThunk(
+  "news/prefetchCategory",
+  async ({ category, location }, { getState, rejectWithValue, dispatch }) => {
+    const state = getState();
+    const { newsData, uiState } = state;
+    if (uiState.activeTab === category || newsData.prefetched[category] || newsData.loading) {
+      return;
+    }
+    try {
+      dispatch(newsDataSlice.actions.markAsPrefetching(category));
+      await apolloClient.query({
+        query: GET_ARTICLES_BY_CATEGORY,
+        variables: { category, location, first: ARTICLE_LIMIT, after: null },
+      });
+      return { category };
+    } catch (error) {
+      return rejectWithValue({ category, error: error.message });
     }
   }
 );
 
 const newsDataSlice = createSlice({
-  name: 'newsData',
-  initialState: {
-    articles: [],
-    cache: {},
-    cacheTime: {},
-    loading: false,
-    error: null,
-    lastFetch: null,
-  },
+  name: "newsData",
+  initialState,
   reducers: {
-    clearCache: (state) => {
-      state.cache = {};
-      state.cacheTime = {};
-    },
-    clearError: (state) => {
+    resetNews: (state) => {
+      state.articles = [];
+      state.hasMore = true;
+      state.endCursor = null;
       state.error = null;
     },
-    setArticles: (state, action) => {
-      state.articles = action.payload;
+    markAsPrefetching: (state, action) => {
+      state.prefetched[action.payload] = true;
     },
   },
   extraReducers: (builder) => {
+    [fetchAllNews, fetchNewsByCategory, searchNews].forEach(thunk => {
+      builder
+        .addCase(thunk.pending, (state, action) => {
+          if (!action.meta.arg.after) {
+            state.articles = [];
+            state.hasMore = true;
+            state.endCursor = null;
+          }
+          state.loading = true;
+          state.error = null;
+        })
+        .addCase(thunk.fulfilled, (state, action) => {
+          state.loading = false;
+          const newArticles = action.payload.articles;
+          if (action.meta.arg.after) {
+            state.articles = deduplicateArticles([...state.articles, ...newArticles]);
+          } else {
+            state.articles = newArticles;
+          }
+          state.hasMore = action.payload.pageInfo.hasNextPage;
+          state.endCursor = action.payload.endCursor;
+        })
+        .addCase(thunk.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+        });
+    });
     builder
-      .addCase(fetchNewsByCategory.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.articles = [];
-      })
-      .addCase(fetchNewsByCategory.fulfilled, (state, action) => {
-        state.loading = false;
-        const { category, location, articles, fromCache } = action.payload;
-        
-        if (!fromCache) {
-          // Update cache
-          state.cache[`${category}-${location}`] = articles;
-          state.cacheTime[`${category}-${location}`] = Date.now();
+      .addCase(prefetchCategory.fulfilled, (state, action) => {
+        if (action.payload && action.payload.category) {
+          state.prefetched[action.payload.category] = true;
         }
-        
-        // Always update articles with the fetched data for the category
-        state.articles = articles;
       })
-      .addCase(fetchNewsByCategory.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(fetchAllNews.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchAllNews.fulfilled, (state, action) => {
-        state.loading = false;
-        state.articles = action.payload;
-        state.lastFetch = Date.now();
-      })
-      .addCase(fetchAllNews.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+      .addCase(prefetchCategory.rejected, (state, action) => {
+        if (action.payload && action.payload.category) {
+          state.prefetched[action.payload.category] = false;
+        }
       });
   },
 });
 
-export const { clearCache, clearError, setArticles } = newsDataSlice.actions;
+export const { resetNews, markAsPrefetching } = newsDataSlice.actions;
 
-export default newsDataSlice.reducer; 
+export default newsDataSlice.reducer;
+

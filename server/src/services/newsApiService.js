@@ -1,4 +1,4 @@
-const BaseNewsService = require('./baseNewsService');
+import BaseNewsService from './baseNewsService.js';
 
 /**
  * Service for fetching news from NewsAPI.org
@@ -30,87 +30,43 @@ class NewsApiService extends BaseNewsService {
   }
 
   /**
-   * Get articles by category from NewsAPI
-   * @param {string} category - Category name
-   * @param {string} location - Location code
-   * @param {number} limit - Maximum number of articles to return
-   * @returns {Promise<Array>} - Array of normalized articles
+   * Fetch articles by category
+   * @param {string} category - The category to fetch articles for
+   * @param {string} location - The location to fetch articles for
+   * @param {number} limit - The number of articles to return
+   * @param {number} offset - The offset for pagination
+   * @returns {Promise<Array>} - A promise that resolves to an array of articles
    */
-  async getArticlesByCategory(category, location = null, limit = 10) {
-    try {
-      const apiCategory = this.mapCategory(category);
-      const apiCountry = this.mapLocation(location);
-      
-      const params = {
-        category: apiCategory,
-        pageSize: limit,
-        language: 'en',
-      };
-      
-      if (apiCountry) {
-        params.country = apiCountry;
-      }
-      
-      const response = await this.httpClient.get('/top-headlines', params);
-      
-      if (!response.articles || !Array.isArray(response.articles)) {
-        console.error('[NewsAPI] Invalid response format:', response);
-        return [];
-      }
-      
-      return response.articles.map(article => this.normalizeArticle(article, category));
-    } catch (error) {
-      console.error('[NewsAPI] Error fetching articles by category:', error.message);
-      return [];
-    }
+  async getArticlesByCategory(category, location, limit = 20, offset = 0) {
+    const page = offset ? Math.floor(offset / limit) + 1 : 1;
+    const params = {
+      category: this.mapCategory(category),
+      country: this.mapLocation(location),
+      pageSize: limit,
+      page,
+    };
+    return this.fetch('top-headlines', params, category);
   }
 
   /**
-   * Search for articles using NewsAPI
-   * @param {string} query - Search query
-   * @param {string} category - Optional category filter
-   * @param {string} location - Optional location filter
-   * @param {number} limit - Maximum number of articles to return
-   * @returns {Promise<Array>} - Array of normalized articles
+   * Search for articles
+   * @param {string} query - The search query
+   * @param {string} category - The category to search in
+   * @param {string} location - The location to search in
+   * @param {number} limit - The number of articles to return
+   * @param {number} offset - The offset for pagination
+   * @returns {Promise<Array>} - A promise that resolves to an array of articles
    */
-  async searchArticles(query, category = null, location = null, limit = 10) {
-    try {
-      const params = {
-        q: query,
-        pageSize: limit,
-        language: 'en',
-        sortBy: 'relevancy',
-        from: this.getDateDaysAgo(7), // Last 7 days
-      };
-      
-      // If category is provided, add it to the query
-      if (category) {
-        const apiCategory = this.mapCategory(category);
-        if (apiCategory) {
-          params.q += ` AND category:${apiCategory}`;
-        }
-      }
-      
-      // If location is provided, add it as a country filter
-      if (location) {
-        const apiCountry = this.mapLocation(location);
-        if (apiCountry) {
-          params.q += ` AND country:${apiCountry}`;
-        }
-      }
-      
-      const response = await this.httpClient.get('/everything', params);
-      
-      if (!response.articles || !Array.isArray(response.articles)) {
-        console.error('[NewsAPI] Invalid response format:', response);
-        return [];
-      }
-      
-      return response.articles.map(article => this.normalizeArticle(article, category));
-    } catch (error) {
-      console.error('[NewsAPI] Error searching articles:', error.message);
-      return [];
-    }
+  async searchArticles(query, category, location, limit = 20, offset = 0) {
+    const page = offset ? Math.floor(offset / limit) + 1 : 1;
+    const params = {
+      q: query,
+      pageSize: limit,
+      page,
+    };
+    if (category) params.category = this.mapCategory(category);
+    // Note: NewsAPI 'country' param is not supported on 'everything' endpoint, so we don't pass it for search
+    return this.fetch('everything', params, category);
   }
 
   /**
@@ -161,8 +117,11 @@ class NewsApiService extends BaseNewsService {
    */
   async isAvailable() {
     try {
-      // Make a simple request to check if the API is available
-      const response = await this.httpClient.get('/sources', { language: 'en', pageSize: 1 });
+      // Make a lightweight request to a valid endpoint to check availability
+      const response = await this.httpClient.get('/top-headlines', {
+        country: 'us',
+        pageSize: 1
+      });
       return response && response.status === 'ok';
     } catch (error) {
       console.error('[NewsAPI] API not available:', error.message);
@@ -171,4 +130,4 @@ class NewsApiService extends BaseNewsService {
   }
 }
 
-module.exports = NewsApiService;
+export default NewsApiService;

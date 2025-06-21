@@ -1,12 +1,12 @@
-const { ChatOpenAI } = require('@langchain/openai');
-const { StringOutputParser } = require('@langchain/core/output_parsers');
-const { ChatPromptTemplate } = require('@langchain/core/prompts');
-const config = require('../config/config');
-const ImprovedNewsProcessor = require('./improvedNewsProcessor');
-const ImprovedNewsOrchestrator = require('./improvedNewsOrchestrator');
-const EnhancedCacheManager = require('./enhancedCacheManager');
-const TextUtils = require('./textUtils');
-const createLogger = require('../utils/logger');
+import { ChatOpenAI } from '@langchain/openai';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import config from '../config/config.js';
+import ImprovedNewsProcessor from './improvedNewsProcessor.js';
+import ImprovedNewsOrchestrator from './improvedNewsOrchestrator.js';
+import EnhancedCacheManager from './enhancedCacheManager.js';
+import TextUtils from './textUtils.js';
+import createLogger from '../utils/logger.js';
 const log = createLogger('ImprovedNewsAggregator');
 
 /**
@@ -527,4 +527,4 @@ class ImprovedNewsAggregator {
   }
 }
 
-module.exports = ImprovedNewsAggregator;
+export default ImprovedNewsAggregator;

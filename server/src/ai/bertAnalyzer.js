@@ -38,4 +38,4 @@ class BertAnalyzer {
   }
 }
 
-module.exports = BertAnalyzer;
+export default BertAnalyzer;

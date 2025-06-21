@@ -16,12 +16,20 @@ export const useArticleAnalysis = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('/api/analyze-sentiment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ 
+          url,
+          options: {
+            includePartyAnalysis: true,
+            includeCountryAnalysis: true,
+            includeDemographicAnalysis: true,
+            includeRecommendations: true
+          }
+        }),
       });
 
       const data = await response.json();

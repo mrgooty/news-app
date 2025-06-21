@@ -2,7 +2,9 @@
  * Cache manager for AI-processed news articles
  * Helps reduce redundant processing and improve performance
  */
-const log = require('../utils/logger')('CacheManager');
+import log from '../utils/logger.js';
+
+const logger = log('CacheManager');
 
 class CacheManager {
   constructor(options = {}) {
@@ -23,17 +25,17 @@ class CacheManager {
   get(key) {
     const record = this.cache.get(key);
     if (!record) {
-      log(`[${this.name}] CACHE MISS for key: ${key}`);
+      logger(`[${this.name}] CACHE MISS for key: ${key}`);
       return null;
     }
 
     if (Date.now() > record.expiry) {
-      log(`[${this.name}] CACHE EXPIRED for key: ${key}`);
+      logger(`[${this.name}] CACHE EXPIRED for key: ${key}`);
       this.cache.delete(key);
       return null;
     }
 
-    log(`[${this.name}] CACHE HIT for key: ${key}`);
+    logger(`[${this.name}] CACHE HIT for key: ${key}`);
     return record.value;
   }
 
@@ -54,7 +56,7 @@ class CacheManager {
       expiry: Date.now() + ttl,
     };
     this.cache.set(key, record);
-    log(`[${this.name}] CACHE SET for key: ${key}`);
+    logger(`[${this.name}] CACHE SET for key: ${key}`);
   }
 
   /**
@@ -140,4 +142,4 @@ class CacheManager {
   }
 }
 
-module.exports = CacheManager;
+export default CacheManager;

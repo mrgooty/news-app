@@ -57,6 +57,17 @@ function AppContent() {
 }
 
 function App() {
+  const { darkMode } = useAppSelector((state) => state.userPreferences);
+
+  useEffect(() => {
+    const body = document.body;
+    if (darkMode) {
+      body.classList.add('dark-mode');
+    } else {
+      body.classList.remove('dark-mode');
+    }
+  }, [darkMode]);
+
   return (
     <Router>
       <div className="app-container">

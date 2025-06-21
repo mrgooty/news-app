@@ -93,7 +93,7 @@ function getRelativeTimeString(dateString) {
   }
 }
 
-module.exports = {
+export {
   formatDate,
   getCurrentDate,
   getDateDaysAgo,

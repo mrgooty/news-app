@@ -1,0 +1,63 @@
+{
+  "name": "news-app",
+  "version": "1.0.0",
+  "description": "A comprehensive news aggregation application with AI-powered analysis",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "cd server && npm test",
+    "test:client": "cd client && npm test",
+    "test:server:watch": "cd server && npm run test:watch",
+    "test:client:watch": "cd client && npm run test:watch",
+    "test:server:coverage": "cd server && npm run test:coverage",
+    "test:client:coverage": "cd client && npm run test:coverage",
+    "test:integration": "cd server && npm run test:integration",
+    "test:e2e": "npm run test:server && npm run test:client && npm run test:integration",
+    "lint": "npm run lint:server && npm run lint:client",
+    "lint:server": "cd server && npm run lint",
+    "lint:client": "cd client && npm run lint",
+    "lint:fix": "npm run lint:fix:server && npm run lint:fix:client",
+    "lint:fix:server": "cd server && npm run lint:fix",
+    "lint:fix:client": "cd client && npm run lint:fix",
+    "clean": "npm run clean:server && npm run clean:client",
+    "clean:server": "cd server && npm run clean",
+    "clean:client": "cd client && npm run clean",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:test": "docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit",
+    "validate": "npm run lint && npm run test",
+    "precommit": "npm run validate",
+    "postinstall": "npm run install:all"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/news-app.git"
+  },
+  "keywords": [
+    "news",
+    "aggregation",
+    "ai",
+    "sentiment-analysis",
+    "react",
+    "graphql",
+    "nodejs"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+} 

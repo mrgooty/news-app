@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { closeArticleModal } from '../store/slices/uiStateSlice';
-import '../styles/news-views.css';
+import '../styles/components/NewsDetailModal.css';
 import placeholderImage from '../assets/placeholder-news.jpg';
 import ArticleAnalysis from './ArticleAnalysis';
 

@@ -1,12 +1,11 @@
-const { ChatOpenAI } = require('@langchain/openai');
-const { StringOutputParser } = require('@langchain/core/output_parsers');
-const { ChatPromptTemplate } = require('@langchain/core/prompts');
-const { StructuredOutputParser } = require('@langchain/core/output_parsers');
-const { z } = require('zod');
-const config = require('../config/config');
-const BertAnalyzer = require('./bertAnalyzer');
-const createLogger = require('../utils/logger');
-const log = createLogger('ImprovedNewsProcessor');
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { ChatOpenAI } from '@langchain/openai';
+import config from '../config/config.js';
+import log from '../utils/logger.js';
+import { checkBasicDuplicate, prepareContentForAI } from '../utils/articleUtils.js';
+
+const logger = log('ImprovedNewsProcessor');
 
 /**
  * Improved News Processor using LangChain with optimized prompts and fallback mechanisms
@@ -14,13 +13,9 @@ const log = createLogger('ImprovedNewsProcessor');
  */
 class ImprovedNewsProcessor {
   constructor() {
-    // Initialize OpenAI model with configuration
-    this.initializeModels();
-    
-    // Initialize local BERT analyzer for fallback
-    this.bertAnalyzer = new BertAnalyzer();
-    
-    // Track API usage
+    this.aiEnabled = config.ai.enabled;
+    this.model = null;
+    this.fallbackModel = null;
     this.apiUsage = {
       totalCalls: 0,
       totalTokens: 0,
@@ -33,78 +28,56 @@ class ImprovedNewsProcessor {
         duplicate: 0,
       },
     };
-    
-    // Rate limiting
-    this.lastApiCall = 0;
-    this.minTimeBetweenCalls = 100; // ms
+
+    if (this.aiEnabled) {
+      this.initializeModels();
+    }
   }
 
   /**
    * Initialize AI models
    */
   initializeModels() {
-    this.aiEnabled = Boolean(config.ai.openaiApiKey);
-    
-    if (this.aiEnabled) {
+    try {
       this.model = new ChatOpenAI({
-        openAIApiKey: config.ai.openaiApiKey,
         modelName: config.ai.model,
-        temperature: config.ai.temperature || 0.1,
+        temperature: config.ai.temperature,
         maxTokens: config.ai.maxTokens,
-        timeout: config.ai.requestTimeout,
-      });
-      
-      // Fallback model with more conservative settings
-      this.fallbackModel = new ChatOpenAI({
         openAIApiKey: config.ai.openaiApiKey,
-        modelName: config.ai.fallbackModel || 'gpt-3.5-turbo',
-        temperature: 0.0,
-        maxTokens: 300,
-        timeout: 45000, // Longer timeout for fallback
       });
-    } else {
-      log('OpenAI API key not configured. AI features will be limited.');
-      this.model = null;
-      this.fallbackModel = null;
+
+      if (config.ai.fallbackModel && config.ai.fallbackModel !== config.ai.model) {
+        this.fallbackModel = new ChatOpenAI({
+          modelName: config.ai.fallbackModel,
+          temperature: config.ai.temperature,
+          maxTokens: config.ai.maxTokens,
+          openAIApiKey: config.ai.openaiApiKey,
+        });
+      }
+
+      logger('AI models initialized successfully');
+    } catch (error) {
+      logger(`Error initializing AI models: ${error.message}`);
+      this.aiEnabled = false;
     }
   }
 
   /**
-   * Apply rate limiting to API calls
-   * @returns {Promise<void>}
+   * Apply rate limiting
    */
   async applyRateLimit() {
-    const now = Date.now();
-    const timeSinceLastCall = now - this.lastApiCall;
-    
-    if (timeSinceLastCall < this.minTimeBetweenCalls) {
-      const delay = this.minTimeBetweenCalls - timeSinceLastCall;
+    const delay = config.ai.rateLimit.delay;
+    if (delay > 0) {
       await new Promise(resolve => setTimeout(resolve, delay));
     }
-    
-    this.lastApiCall = Date.now();
   }
 
   /**
    * Track API usage
-   * @param {string} type - Type of API call
-   * @param {number} tokens - Estimated token usage
    */
-  trackApiUsage(type, tokens = 0) {
+  trackApiUsage(operationType) {
     this.apiUsage.totalCalls++;
-    this.apiUsage.totalTokens += tokens;
-    
-    if (this.apiUsage.callsByType[type] !== undefined) {
-      this.apiUsage.callsByType[type]++;
-    }
-  }
-
-  /**
-   * Get API usage statistics
-   * @returns {Object} - API usage statistics
-   */
-  getApiUsage() {
-    return { ...this.apiUsage };
+    this.apiUsage.callsByType[operationType] = (this.apiUsage.callsByType[operationType] || 0) + 1;
   }
 
   /**
@@ -151,12 +124,12 @@ class ImprovedNewsProcessor {
       // Execute the operation
       return await operation();
     } catch (error) {
-      log(`Error in ${operationType}: ${error.message}`);
+      logger(`Error in ${operationType}: ${error.message}`);
       
       // Try with fallback model
       if (this.fallbackModel) {
         try {
-          log(`Retrying ${operationType} with fallback model`);
+          logger(`Retrying ${operationType} with fallback model`);
           // Apply rate limiting again
           await this.applyRateLimit();
           
@@ -166,17 +139,17 @@ class ImprovedNewsProcessor {
           // Execute the operation with fallback model
           return await operation(true);
         } catch (fallbackError) {
-          log(`Fallback model also failed for ${operationType}: ${fallbackError.message}`);
+          logger(`Fallback model also failed for ${operationType}: ${fallbackError.message}`);
         }
       }
       
       // Try with fallback function if provided
       if (fallbackFn) {
         try {
-          log(`Using local fallback for ${operationType}`);
+          logger(`Using local fallback for ${operationType}`);
           return await fallbackFn();
         } catch (localFallbackError) {
-          log(`Local fallback also failed for ${operationType}: ${localFallbackError.message}`);
+          logger(`Local fallback also failed for ${operationType}: ${localFallbackError.message}`);
         }
       }
       
@@ -186,183 +159,236 @@ class ImprovedNewsProcessor {
   }
 
   /**
-   * Categorize a news article with improved prompt and fallback
-   * @param {Object} article - The news article to categorize
-   * @returns {Promise<string>} - The category
+   * Prepare content for AI processing
+   * @param {Object} article - Article object
+   * @param {boolean} short - Whether to use short content
+   * @returns {string} - Prepared content
+   */
+  prepareContent(article, short = false) {
+    return prepareContentForAI(article, short);
+  }
+
+  /**
+   * Summarize article content
+   * @param {Object} article - Article to summarize
+   * @returns {Promise<string>} - Article summary
+   */
+  async summarizeArticle(article) {
+    const operation = async (useFallback = false) => {
+      const model = useFallback ? this.fallbackModel : this.model;
+      
+      const prompt = ChatPromptTemplate.fromTemplate(
+        `Summarize the following news article in 2-3 sentences. Focus on the main facts and key information.
+
+        Title: {title}
+        Content: {content}
+
+        Summary:`
+      );
+
+      const chain = prompt.pipe(model).pipe(new StringOutputParser());
+      
+      const result = await chain.invoke({
+        title: article.title,
+        content: this.prepareContent(article, true)
+      });
+      
+      return result.trim();
+    };
+
+    const fallbackFn = async () => {
+      return article.description || article.title;
+    };
+
+    return this.executeWithFallback(operation, 'summarize', article.title, fallbackFn);
+  }
+
+  /**
+   * Categorize article content
+   * @param {Object} article - Article to categorize
+   * @returns {Promise<string>} - Article category
    */
   async categorizeArticle(article) {
     const operation = async (useFallback = false) => {
       const model = useFallback ? this.fallbackModel : this.model;
       
-      // Improved prompt for more accurate categorization
       const prompt = ChatPromptTemplate.fromTemplate(
-        `Categorize the following news article into exactly one of these categories:
-        Technology, Business, Science, Health, Entertainment, Sports, Politics, World
-        
-        Choose the most specific and relevant category based on the main topic of the article.
-        
+        `Categorize this news article into one of these categories: technology, business, politics, sports, entertainment, science, health, world.
+
         Title: {title}
         Content: {content}
-        
-        Category (one word only):`
+
+        Respond with only the category name.`
       );
-      
+
       const chain = prompt.pipe(model).pipe(new StringOutputParser());
       
-      const category = await chain.invoke({
+      const result = await chain.invoke({
         title: article.title,
-        content: this.prepareContent(article),
+        content: this.prepareContent(article, true)
       });
       
-      // Normalize category name
-      return this.normalizeCategory(category.trim());
+      return result.trim().toLowerCase();
     };
-    
-    // Fallback function using rule-based categorization
+
     const fallbackFn = async () => {
-      return this.ruleBadedCategorization(article);
+      return article.category || 'general';
     };
-    
-    // Default to 'general' if all else fails
+
     return this.executeWithFallback(operation, 'categorize', 'general', fallbackFn);
   }
 
   /**
-   * Extract key information from a news article with improved schema
-   * @param {Object} article - The news article to analyze
+   * Extract key information from article
+   * @param {Object} article - Article to extract info from
    * @returns {Promise<Object>} - Extracted information
    */
-  async extractKeyInformation(article) {
+  async extractArticleInfo(article) {
     const operation = async (useFallback = false) => {
       const model = useFallback ? this.fallbackModel : this.model;
       
-      // Improved schema for more structured output
-      const parser = StructuredOutputParser.fromZodSchema(
-        z.object({
-          entities: z.array(z.string()).describe("Key entities (people, organizations, products) mentioned in the article"),
-          locations: z.array(z.string()).describe("Specific locations mentioned in the article"),
-          topics: z.array(z.string()).describe("Main topics or themes of the article (3-5 topics)"),
-          sentiment: z.enum(["positive", "negative", "neutral", "mixed"]).describe("Overall sentiment of the article"),
-          importance: z.number().min(1).max(10).describe("Importance score from 1-10 based on significance of the news"),
-        })
-      );
-
-      const formatInstructions = parser.getFormatInstructions();
-
-      // Improved prompt for better information extraction
       const prompt = ChatPromptTemplate.fromTemplate(
-        `Extract key information from the following news article:
-        
+        `Extract key information from this news article. Return a JSON object with these fields:
+        - entities: array of important people, places, organizations mentioned
+        - keywords: array of key terms and concepts
+        - sentiment: overall sentiment (positive, negative, neutral)
+        - confidence: confidence score (0-1)
+
         Title: {title}
         Content: {content}
-        
-        Analyze the article carefully and extract:
-        1. Important entities (people, organizations, products)
-        2. Specific locations mentioned
-        3. Main topics or themes (3-5 topics)
-        4. Overall sentiment (positive, negative, neutral, or mixed)
-        5. Importance score (1-10) based on the significance of the news
-        
-        {format_instructions}
-        
-        Extracted Information:`
+
+        JSON:`
       );
+
+      const chain = prompt.pipe(model).pipe(new StringOutputParser());
       
-      const chain = prompt.pipe(model).pipe(parser);
-      
-      const extractedInfo = await chain.invoke({
+      const result = await chain.invoke({
         title: article.title,
-        content: this.prepareContent(article),
-        format_instructions: formatInstructions,
+        content: this.prepareContent(article, true)
       });
       
-      return extractedInfo;
+      try {
+        return JSON.parse(result.trim());
+      } catch (error) {
+        logger(`Error parsing extracted info: ${error.message}`);
+        return {
+          entities: [],
+          keywords: [],
+          sentiment: 'neutral',
+          confidence: 0.5
+        };
+      }
     };
-    
-    // Fallback function using simpler extraction
+
     const fallbackFn = async () => {
-      const sentiment = config.ai.features.fallbackToLocal 
-        ? await this.bertAnalyzer.analyzeSentiment(this.prepareContent(article))
-        : 'neutral';
-      
       return {
-        entities: this.extractBasicEntities(article),
-        locations: [],
-        topics: [this.ruleBadedCategorization(article)],
-        sentiment: sentiment,
-        importance: 5, // Middle importance as default
+        entities: [],
+        keywords: article.title.split(' ').slice(0, 5),
+        sentiment: 'neutral',
+        confidence: 0.5
       };
     };
-    
-    // Default empty structure if all else fails
-    const defaultInfo = {
+
+    return this.executeWithFallback(operation, 'extractInfo', {
       entities: [],
-      locations: [],
-      topics: [],
+      keywords: [],
       sentiment: 'neutral',
-      importance: 5,
-    };
-    
-    return this.executeWithFallback(operation, 'extractInfo', defaultInfo, fallbackFn);
+      confidence: 0.5
+    }, fallbackFn);
   }
 
   /**
-   * Calculate relevance score for an article with improved prompt
-   * @param {Object} article - The news article to score
-   * @param {string} category - The category to score against
-   * @returns {Promise<number>} - Relevance score from 0-100
+   * Analyze article sentiment
+   * @param {Object} article - Article to analyze
+   * @returns {Promise<Object>} - Sentiment analysis result
    */
-  async calculateRelevanceScore(article, category) {
+  async analyzeSentiment(article) {
     const operation = async (useFallback = false) => {
       const model = useFallback ? this.fallbackModel : this.model;
       
-      // Improved schema for more structured output
-      const parser = StructuredOutputParser.fromZodSchema(
-        z.object({
-          relevanceScore: z.number().min(0).max(100).describe("Relevance score from 0-100"),
-          reasoning: z.string().describe("Brief reasoning behind the score"),
-        })
-      );
-
-      const formatInstructions = parser.getFormatInstructions();
-
-      // Improved prompt for better relevance scoring
       const prompt = ChatPromptTemplate.fromTemplate(
-        `Calculate a relevance score for this news article in the category "{category}".
-        
+        `Analyze the sentiment of this news article. Return a JSON object with:
+        - sentiment: positive, negative, or neutral
+        - confidence: confidence score (0-1)
+        - reasoning: brief explanation
+
         Title: {title}
         Content: {content}
-        
-        Consider these factors:
-        - How directly related the content is to the {category} category
-        - The importance of the news within that category
-        - The timeliness and impact of the information
-        - The specificity to the category (more specific = higher score)
-        
-        {format_instructions}
-        
-        Relevance Assessment:`
+
+        JSON:`
       );
+
+      const chain = prompt.pipe(model).pipe(new StringOutputParser());
       
-      const chain = prompt.pipe(model).pipe(parser);
-      
-      const assessment = await chain.invoke({
+      const result = await chain.invoke({
         title: article.title,
-        content: this.prepareContent(article, true), // Use shorter content for relevance
-        category: category,
-        format_instructions: formatInstructions,
+        content: this.prepareContent(article, true)
       });
       
-      return assessment.relevanceScore;
+      try {
+        return JSON.parse(result.trim());
+      } catch (error) {
+        logger(`Error parsing sentiment: ${error.message}`);
+        return {
+          sentiment: 'neutral',
+          confidence: 0.5,
+          reasoning: 'Unable to analyze sentiment'
+        };
+      }
     };
-    
-    // Fallback function using keyword matching
+
     const fallbackFn = async () => {
-      return this.calculateBasicRelevanceScore(article, category);
+      return {
+        sentiment: 'neutral',
+        confidence: 0.5,
+        reasoning: 'Fallback sentiment analysis'
+      };
     };
-    
-    // Default middle score if all else fails
-    return this.executeWithFallback(operation, 'relevance', 50, fallbackFn);
+
+    return this.executeWithFallback(operation, 'sentiment', {
+      sentiment: 'neutral',
+      confidence: 0.5,
+      reasoning: 'Unable to analyze sentiment'
+    }, fallbackFn);
+  }
+
+  /**
+   * Calculate article relevance score
+   * @param {Object} article - Article to score
+   * @param {string} context - Context for relevance (e.g., category, query)
+   * @returns {Promise<number>} - Relevance score (0-1)
+   */
+  async calculateRelevanceScore(article, context = '') {
+    const operation = async (useFallback = false) => {
+      const model = useFallback ? this.fallbackModel : this.model;
+      
+      const prompt = ChatPromptTemplate.fromTemplate(
+        `Rate the relevance of this article to the context. Return a number between 0 and 1.
+
+        Context: {context}
+        Title: {title}
+        Content: {content}
+
+        Relevance score (0-1):`
+      );
+
+      const chain = prompt.pipe(model).pipe(new StringOutputParser());
+      
+      const result = await chain.invoke({
+        context,
+        title: article.title,
+        content: this.prepareContent(article, true)
+      });
+      
+      const score = parseFloat(result.trim());
+      return isNaN(score) ? 0.5 : Math.max(0, Math.min(1, score));
+    };
+
+    const fallbackFn = async () => {
+      return 0.5;
+    };
+
+    return this.executeWithFallback(operation, 'relevance', 0.5, fallbackFn);
   }
 
   /**
@@ -372,16 +398,6 @@ class ImprovedNewsProcessor {
    * @returns {Promise<boolean>} - True if articles are duplicates
    */
   async isDuplicate(article1, article2) {
-    // Quick check for identical URLs
-    if (article1.url && article2.url && article1.url === article2.url) {
-      return true;
-    }
-    
-    // Quick check for identical titles
-    if (article1.title === article2.title) {
-      return true;
-    }
-    
     const operation = async (useFallback = false) => {
       const model = useFallback ? this.fallbackModel : this.model;
       
@@ -417,9 +433,9 @@ class ImprovedNewsProcessor {
       return result.trim().toLowerCase() === 'yes';
     };
     
-    // Fallback function using title similarity
+    // Fallback function using centralized utility
     const fallbackFn = async () => {
-      return this.checkBasicDuplicate(article1, article2);
+      return checkBasicDuplicate(article1, article2);
     };
     
     // Default to not duplicate if all else fails
@@ -427,206 +443,95 @@ class ImprovedNewsProcessor {
   }
 
   /**
-   * Prepare article content for processing
-   * @param {Object} article - The article to prepare content for
-   * @param {boolean} shorter - Whether to use shorter content
-   * @returns {string} - Prepared content
+   * Process a batch of articles
+   * @param {Array} articles - Articles to process
+   * @returns {Promise<Array>} - Processed articles
    */
-  prepareContent(article, shorter = false) {
-    let content = article.content || article.description || '';
-    
-    // Add title if content is very short
-    if (content.length < 100) {
-      content = `${article.title}. ${content}`;
+  async processBatch(articles) {
+    if (!this.aiEnabled || !articles || articles.length === 0) {
+      return articles;
     }
+
+    logger(`Processing batch of ${articles.length} articles`);
+
+    const processedArticles = [];
     
-    // Limit content length for efficiency
-    const maxLength = shorter ? 500 : 1500;
-    if (content.length > maxLength) {
-      content = content.substring(0, maxLength);
+    for (const article of articles) {
+      try {
+        // Process article in parallel
+        const [summary, category, info, sentiment, relevance] = await Promise.allSettled([
+          this.summarizeArticle(article),
+          this.categorizeArticle(article),
+          this.extractArticleInfo(article),
+          this.analyzeSentiment(article),
+          this.calculateRelevanceScore(article, article.category)
+        ]);
+
+        // Combine results
+        const processedArticle = {
+          ...article,
+          aiSummary: summary.status === 'fulfilled' ? summary.value : null,
+          aiCategory: category.status === 'fulfilled' ? category.value : article.category,
+          aiInfo: info.status === 'fulfilled' ? info.value : {},
+          aiSentiment: sentiment.status === 'fulfilled' ? sentiment.value : { sentiment: 'neutral', confidence: 0.5 },
+          aiRelevance: relevance.status === 'fulfilled' ? relevance.value : 0.5,
+          finalScore: this.calculateFinalScore(article, {
+            relevance: relevance.status === 'fulfilled' ? relevance.value : 0.5,
+            sentiment: sentiment.status === 'fulfilled' ? sentiment.value.confidence : 0.5
+          })
+        };
+
+        processedArticles.push(processedArticle);
+      } catch (error) {
+        logger(`Error processing article ${article.id}: ${error.message}`);
+        processedArticles.push(article);
+      }
     }
-    
-    return content;
+
+    return processedArticles;
   }
 
   /**
-   * Normalize category name
-   * @param {string} category - Category name to normalize
-   * @returns {string} - Normalized category name
+   * Calculate final score for article ranking
+   * @param {Object} article - Article object
+   * @param {Object} aiResults - AI analysis results
+   * @returns {number} - Final score
    */
-  normalizeCategory(category) {
-    const normalized = category.trim().toLowerCase();
-    
-    // Map of common variations to standard categories
-    const categoryMap = {
-      'tech': 'technology',
-      'technology': 'technology',
-      'business': 'business',
-      'finance': 'business',
-      'economy': 'business',
-      'science': 'science',
-      'research': 'science',
-      'health': 'health',
-      'medical': 'health',
-      'healthcare': 'health',
-      'entertainment': 'entertainment',
-      'media': 'entertainment',
-      'celebrity': 'entertainment',
-      'sports': 'sports',
-      'sport': 'sports',
-      'politics': 'politics',
-      'political': 'politics',
-      'government': 'politics',
-      'world': 'world',
-      'international': 'world',
-      'global': 'world',
-    };
-    
-    // Return mapped category or default to 'general'
-    return categoryMap[normalized] || 'general';
+  calculateFinalScore(article, aiResults) {
+    let score = 0.5; // Base score
+
+    // Factor in relevance
+    if (aiResults.relevance) {
+      score += aiResults.relevance * 0.3;
+    }
+
+    // Factor in sentiment confidence
+    if (aiResults.sentiment) {
+      score += aiResults.sentiment * 0.2;
+    }
+
+    // Factor in article age (newer articles get higher scores)
+    if (article.publishedAt) {
+      const ageInHours = (Date.now() - new Date(article.publishedAt).getTime()) / (1000 * 60 * 60);
+      const ageScore = Math.max(0, 1 - (ageInHours / 168)); // Decay over a week
+      score += ageScore * 0.3;
+    }
+
+    // Factor in content length (longer articles might be more substantial)
+    const contentLength = (article.content || article.description || '').length;
+    const lengthScore = Math.min(1, contentLength / 1000); // Normalize to 1000 chars
+    score += lengthScore * 0.2;
+
+    return Math.max(0, Math.min(1, score));
   }
 
   /**
-   * Rule-based categorization as fallback
-   * @param {Object} article - The article to categorize
-   * @returns {string} - Category
+   * Get API usage statistics
+   * @returns {Object} - Usage statistics
    */
-  ruleBadedCategorization(article) {
-    const text = `${article.title} ${article.description || ''}`.toLowerCase();
-    
-    // Simple keyword-based categorization
-    const categoryKeywords = {
-      technology: ['tech', 'technology', 'software', 'hardware', 'app', 'digital', 'internet', 'cyber', 'ai', 'robot'],
-      business: ['business', 'economy', 'market', 'stock', 'finance', 'company', 'industry', 'trade', 'economic'],
-      science: ['science', 'research', 'study', 'discovery', 'space', 'physics', 'chemistry', 'biology'],
-      health: ['health', 'medical', 'doctor', 'hospital', 'disease', 'treatment', 'patient', 'drug', 'vaccine'],
-      entertainment: ['entertainment', 'movie', 'film', 'music', 'celebrity', 'actor', 'actress', 'hollywood', 'tv', 'show'],
-      sports: ['sport', 'sports', 'game', 'player', 'team', 'match', 'tournament', 'championship', 'olympic', 'football', 'soccer', 'basketball'],
-      politics: ['politics', 'government', 'president', 'minister', 'election', 'vote', 'party', 'congress', 'senate', 'parliament'],
-      world: ['world', 'international', 'global', 'foreign', 'country', 'nation', 'diplomatic', 'embassy', 'border'],
-    };
-    
-    // Count keyword matches for each category
-    const scores = {};
-    for (const [category, keywords] of Object.entries(categoryKeywords)) {
-      scores[category] = 0;
-      for (const keyword of keywords) {
-        if (text.includes(keyword)) {
-          scores[category]++;
-        }
-      }
-    }
-    
-    // Find category with highest score
-    let maxScore = 0;
-    let maxCategory = 'general';
-    
-    for (const [category, score] of Object.entries(scores)) {
-      if (score > maxScore) {
-        maxScore = score;
-        maxCategory = category;
-      }
-    }
-    
-    // Return general if no strong match
-    return maxScore > 0 ? maxCategory : 'general';
-  }
-
-  /**
-   * Extract basic entities as fallback
-   * @param {Object} article - The article to extract entities from
-   * @returns {Array<string>} - Extracted entities
-   */
-  extractBasicEntities(article) {
-    const text = `${article.title} ${article.description || ''}`;
-    const entities = [];
-    
-    // Extract quoted phrases as potential entities
-    const quoteRegex = /"([^"]+)"/g;
-    let match;
-    while ((match = quoteRegex.exec(text)) !== null) {
-      if (match[1].length > 3) {
-        entities.push(match[1]);
-      }
-    }
-    
-    // Extract capitalized phrases as potential entities
-    const capitalizedRegex = /\b([A-Z][a-z]+ [A-Z][a-z]+(?:\s[A-Z][a-z]+)*)\b/g;
-    while ((match = capitalizedRegex.exec(text)) !== null) {
-      if (!entities.includes(match[1])) {
-        entities.push(match[1]);
-      }
-    }
-    
-    return entities.slice(0, 5); // Limit to 5 entities
-  }
-
-  /**
-   * Calculate basic relevance score as fallback
-   * @param {Object} article - The article to score
-   * @param {string} category - The category to score against
-   * @returns {number} - Relevance score
-   */
-  calculateBasicRelevanceScore(article, category) {
-    const text = `${article.title} ${article.description || ''}`.toLowerCase();
-    
-    // Category-specific keywords
-    const categoryKeywords = {
-      technology: ['tech', 'technology', 'software', 'hardware', 'app', 'digital', 'internet', 'cyber', 'ai', 'robot'],
-      business: ['business', 'economy', 'market', 'stock', 'finance', 'company', 'industry', 'trade', 'economic'],
-      science: ['science', 'research', 'study', 'discovery', 'space', 'physics', 'chemistry', 'biology'],
-      health: ['health', 'medical', 'doctor', 'hospital', 'disease', 'treatment', 'patient', 'drug', 'vaccine'],
-      entertainment: ['entertainment', 'movie', 'film', 'music', 'celebrity', 'actor', 'actress', 'hollywood', 'tv', 'show'],
-      sports: ['sport', 'sports', 'game', 'player', 'team', 'match', 'tournament', 'championship', 'olympic', 'football', 'soccer', 'basketball'],
-      politics: ['politics', 'government', 'president', 'minister', 'election', 'vote', 'party', 'congress', 'senate', 'parliament'],
-      world: ['world', 'international', 'global', 'foreign', 'country', 'nation', 'diplomatic', 'embassy', 'border'],
-      general: ['news', 'report', 'update', 'latest', 'breaking', 'today', 'announce', 'reveal', 'say', 'state'],
-    };
-    
-    // Get keywords for the specified category
-    const keywords = categoryKeywords[category.toLowerCase()] || categoryKeywords.general;
-    
-    // Count keyword matches
-    let matches = 0;
-    for (const keyword of keywords) {
-      if (text.includes(keyword)) {
-        matches++;
-      }
-    }
-    
-    // Calculate score based on matches
-    const maxMatches = keywords.length;
-    const baseScore = (matches / maxMatches) * 100;
-    
-    // Adjust score (minimum 30, maximum 95)
-    return Math.min(95, Math.max(30, baseScore));
-  }
-
-  /**
-   * Check if articles are duplicates using basic comparison
-   * @param {Object} article1 - First article
-   * @param {Object} article2 - Second article
-   * @returns {boolean} - True if articles are likely duplicates
-   */
-  checkBasicDuplicate(article1, article2) {
-    // Check for significant title overlap
-    const title1Words = article1.title.toLowerCase().split(/\s+/);
-    const title2Words = article2.title.toLowerCase().split(/\s+/);
-    
-    // Count matching words
-    let matchingWords = 0;
-    for (const word of title1Words) {
-      if (word.length > 3 && title2Words.includes(word)) {
-        matchingWords++;
-      }
-    }
-    
-    // Calculate similarity percentage
-    const similarity = (matchingWords * 2) / (title1Words.length + title2Words.length);
-    
-    // Consider duplicates if similarity is high
-    return similarity > 0.6;
+  getApiUsage() {
+    return { ...this.apiUsage };
   }
 }
 
-module.exports = ImprovedNewsProcessor;
+export default ImprovedNewsProcessor;

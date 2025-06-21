@@ -1,6 +1,6 @@
-const HttpClient = require('../utils/httpClient');
-const config = require('../config/config');
-const crypto = require('crypto');
+import HttpClient from '../utils/httpClient.js';
+import config from '../config/config.js';
+import crypto from 'crypto';
 
 /**
  * Base class for news API services
@@ -133,6 +133,47 @@ class BaseNewsService {
       return false;
     }
   }
+
+  /**
+   * Make a request to the API and normalize the response
+   * @param {string} endpoint - API endpoint
+   * @param {Object} params - Request parameters
+   * @param {string} category - Category for normalization
+   * @returns {Promise<Array>} - Array of normalized articles
+   */
+  async fetch(endpoint, params, category = null) {
+    try {
+      const response = await this.httpClient.get(endpoint, params);
+      
+      // Extract articles from response based on API structure
+      let articles = [];
+      if (response.articles) {
+        articles = response.articles;
+      } else if (response.news) {
+        articles = response.news;
+      } else if (response.results) {
+        articles = response.results;
+      } else if (response.data) {
+        articles = response.data;
+      } else if (response.response && response.response.results) {
+        articles = response.response.results;
+      } else {
+        console.error(`[${this.apiName}] Unexpected response structure:`, response);
+        return [];
+      }
+      
+      if (!Array.isArray(articles)) {
+        console.error(`[${this.apiName}] Articles is not an array:`, articles);
+        return [];
+      }
+      
+      // Normalize articles
+      return articles.map(article => this.normalizeArticle(article, category));
+    } catch (error) {
+      console.error(`[${this.apiName}] Error fetching from ${endpoint}:`, error.message);
+      return [];
+    }
+  }
 }
 
-module.exports = BaseNewsService;
+export default BaseNewsService;

@@ -1,5 +1,5 @@
-const { createGraph, StateGraph } = require('@langchain/langgraph');
-const NewsProcessor = require('./newsProcessor');
+import { createGraph, StateGraph } from '@langchain/langgraph';
+import NewsProcessor from './newsProcessor.js';
 
 /**
  * News Orchestrator using LangGraph
@@ -336,4 +336,4 @@ class NewsOrchestrator {
   }
 }
 
-module.exports = NewsOrchestrator;
+export default NewsOrchestrator;

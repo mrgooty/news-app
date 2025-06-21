@@ -217,4 +217,49 @@
 .dark-mode .read-more-link:hover {
   background-color: var(--trust-sage);
   color: var(--neutral-900);
+}
+
+/* List View Specific Styles */
+.news-list .news-card {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  grid-gap: 16px;
+  max-height: 160px;
+}
+
+.news-list .news-card-header {
+  grid-row: span 2;
+}
+
+.news-list .news-image-container {
+  height: 100%;
+  width: 120px;
+}
+
+.news-list .news-content {
+  padding: 8px 16px 8px 0;
+}
+
+.news-list .news-title {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.news-list .news-description {
+  font-size: 13px;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.news-list .news-meta {
+  padding: 4px 0;
+  background-color: transparent;
+  position: relative;
+}
+
+.news-list .news-footer {
+  display: none;
 } 

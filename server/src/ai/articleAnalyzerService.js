@@ -1,7 +1,8 @@
-const articleScraperService = require('../services/articleScraperService');
-const CacheManager = require('./cacheManager');
-const log = require('../utils/logger')('ArticleAnalyzer');
+import articleScraperService from '../services/articleScraperService.js';
+import CacheManager from './cacheManager.js';
+import log from '../utils/logger.js';
 
+const logger = log('ArticleAnalyzer');
 const analysisCache = new CacheManager(3600).withName('AnalysisCache');
 const URL_REGEX = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
 
@@ -17,7 +18,7 @@ class ArticleAnalyzerService {
 
   async init() {
     try {
-      log('Initializing analysis pipelines...');
+      logger('Initializing analysis pipelines...');
       // Use dynamic import for ES Modules as @xenova/transformers is an ESM package
       const { pipeline } = await import('@xenova/transformers');
       this.summarizer = await pipeline('summarization', 'Xenova/bart-large-cnn', {
@@ -26,9 +27,9 @@ class ArticleAnalyzerService {
       this.sentimentAnalyzer = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english', {
         session_options: { logSeverityLevel: 3 },
       });
-      log('Analysis pipelines initialized successfully.');
+      logger('Analysis pipelines initialized successfully.');
     } catch (error) {
-      log('ERROR: Failed to initialize analysis pipelines:', error);
+      logger('ERROR: Failed to initialize analysis pipelines:', error);
     }
   }
 
@@ -51,29 +52,29 @@ class ArticleAnalyzerService {
   async analyzeArticle({ url }) {
     await this.initializing;
     if (!this.summarizer || !this.sentimentAnalyzer) {
-      log('ERROR: Analysis service is not initialized.');
+      logger('ERROR: Analysis service is not initialized.');
       throw new Error('Analysis service is not available.');
     }
 
-    log(`Starting analysis process for URL: ${url}`);
+    logger(`Starting analysis process for URL: ${url}`);
     
     if (!url || !URL_REGEX.test(url)) {
-      log(`WARN: Analyze called with an invalid URL: ${url}`);
+      logger(`WARN: Analyze called with an invalid URL: ${url}`);
       throw new Error('Invalid URL provided.');
     }
     
     const cachedAnalysis = analysisCache.get(url);
     if (cachedAnalysis) {
-      log(`Cache HIT for analysis of URL: ${url}`);
+      logger(`Cache HIT for analysis of URL: ${url}`);
       return cachedAnalysis;
     }
-    log(`Cache MISS for analysis of URL: ${url}`);
+    logger(`Cache MISS for analysis of URL: ${url}`);
 
     try {
       const articleText = await this.scraper.scrape(url);
 
       if (articleText.startsWith('Could not extract') || articleText.startsWith('Failed to scrape')) {
-        log(`WARN: Scraping did not yield content for ${url}. Returning message to user.`);
+        logger(`WARN: Scraping did not yield content for ${url}. Returning message to user.`);
         // Return a structured response that the frontend can handle
         return { 
           summary: articleText, 
@@ -96,11 +97,11 @@ class ArticleAnalyzerService {
       };
 
       analysisCache.set(url, analysis);
-      log(`Analysis complete for URL: ${url}`);
+      logger(`Analysis complete for URL: ${url}`);
       return analysis;
 
     } catch (error) {
-      log(`ERROR: An unexpected error occurred during the analysis process for URL ${url}:`, error);
+      logger(`ERROR: An unexpected error occurred during the analysis process for URL ${url}:`, error);
       // Re-throwing the error lets the route handler decide the status code
       throw new Error('An unexpected error occurred during the analysis process.');
     }
@@ -112,4 +113,5 @@ class ArticleAnalyzerService {
 ArticleAnalyzerService.prototype.scraper = articleScraperService;
 
 // Export a singleton instance
-module.exports = new ArticleAnalyzerService(); 
+const articleAnalyzerServiceInstance = new ArticleAnalyzerService();
+export default articleAnalyzerServiceInstance; 

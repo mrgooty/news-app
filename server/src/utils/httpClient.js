@@ -1,6 +1,6 @@
-const axios = require('axios');
-const createLogger = require("./logger");
-const config = require('../config/config');
+import axios from 'axios';
+import createLogger from './logger.js';
+import config from '../config/config.js';
 
 // Simple in-memory cache
 const cache = new Map();
@@ -86,37 +86,13 @@ class HttpClient {
         throw new Error(`API key for ${this.apiName} is not configured. Please add it to your .env file.`);
       }
       
-      // Prepare request configuration
+      // Prepare request configuration - use the same approach as newsApiAggregator
+      const finalParams = { ...params, [this.apiConfig.keyName]: this.apiConfig.apiKey };
+      
       const requestConfig = {
-        params: { ...params },
+        params: finalParams,
         ...options,
       };
-      
-      // Add API key based on authentication method
-      if (this.apiName === 'newsapi' || this.apiName === 'bing') {
-        requestConfig.headers = {
-          ...requestConfig.headers,
-          'X-Api-Key': this.apiConfig.apiKey,
-        };
-        
-        // Special case for Bing News API
-        if (this.apiName === 'bing') {
-          requestConfig.headers = {
-            ...requestConfig.headers,
-            'Ocp-Apim-Subscription-Key': this.apiConfig.apiKey,
-          };
-          delete requestConfig.headers['X-Api-Key'];
-        }
-      } else if (this.apiName === 'newscatcher') {
-        requestConfig.headers = {
-          ...requestConfig.headers,
-          'x-api-key': this.apiConfig.apiKey,
-        };
-      } else {
-        // For most APIs, add the key as a query parameter
-        const apiKeyParam = this.getApiKeyParamName();
-        requestConfig.params[apiKeyParam] = this.apiConfig.apiKey;
-      }
       
       log(`[${this.apiName}] Making request to ${endpoint}`);
       const response = await this.client.get(endpoint, requestConfig);
@@ -147,18 +123,8 @@ class HttpClient {
    * @returns {string} - API key parameter name
    */
   getApiKeyParamName() {
-    switch (this.apiName) {
-      case 'gnews':
-        return 'token';
-      case 'guardian':
-        return 'api-key';
-      case 'nytimes':
-        return 'api-key';
-      case 'mediastack':
-        return 'access_key';
-      default:
-        return 'apiKey';
-    }
+    // Use the keyName from config instead of hardcoded values
+    return this.apiConfig.keyName || 'apiKey';
   }
 
   /**
@@ -197,36 +163,30 @@ class HttpClient {
     } else {
       // Something happened in setting up the request
       message += error.message;
-      
-      // Check for common configuration issues
-      if (error.message.includes('API key')) {
-        message += ` Make sure you've added the ${this.apiName.toUpperCase()}_API_KEY to your .env file.`;
-      }
     }
     
     return message;
   }
 
   /**
-   * Handle API request errors
-   * @param {Error} error - The error object
-   * @param {string} endpoint - The API endpoint that was called
+   * Handle errors with appropriate logging
+   * @param {Error} error - The error to handle
+   * @param {string} endpoint - The endpoint that was called
    */
   handleError(error, endpoint) {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error(`[${this.apiName}] API Error (${endpoint}):`, {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data,
-      });
+    const status = error.response?.status;
+    const errorData = error.response?.data;
+    
+    if (status) {
+      log(`[${this.apiName}] HTTP ${status} error calling ${endpoint}: ${error.response.statusText}`);
+      
+      if (errorData) {
+        log(`[${this.apiName}] Error details:`, errorData);
+      }
     } else if (error.request) {
-      // The request was made but no response was received
-      console.error(`[${this.apiName}] No response (${endpoint}):`, error.request);
+      log(`[${this.apiName}] Network error calling ${endpoint}: No response received`);
     } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error(`[${this.apiName}] Request error (${endpoint}):`, error.message);
+      log(`[${this.apiName}] Request setup error calling ${endpoint}: ${error.message}`);
     }
   }
 
@@ -278,4 +238,4 @@ class HttpClient {
   }
 }
 
-module.exports = HttpClient;
+export default HttpClient;

@@ -1,22 +1,30 @@
 import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import InfiniteScroll from 'react-infinite-scroll-component';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { fetchNewsByCategory } from '../store/slices/newsDataSlice';
 import NewsGrid from '../components/NewsGrid';
 import NewsDetailModal from '../components/NewsDetailModal';
 import '../styles/news-views.css';
+import '../styles/components/status-indicators.css';
 
 function CategoryPage() {
   const { categoryId } = useParams();
   const dispatch = useAppDispatch();
   const { location, isLoaded } = useAppSelector((state) => state.userPreferences);
-  const { articles, loading, error } = useAppSelector((state) => state.newsData);
+  const { articles, loading, error, hasMore, endCursor } = useAppSelector((state) => state.newsData);
 
   useEffect(() => {
     if (isLoaded && categoryId) {
       dispatch(fetchNewsByCategory({ category: categoryId, location }));
     }
   }, [dispatch, isLoaded, categoryId, location]);
+
+  const fetchMoreData = () => {
+    if (hasMore && !loading) {
+      dispatch(fetchNewsByCategory({ category: categoryId, location, after: endCursor }));
+    }
+  };
 
   const handleRefresh = () => {
     dispatch(fetchNewsByCategory({ category: categoryId, location }));
@@ -46,7 +54,7 @@ function CategoryPage() {
       );
     }
 
-    if (articles.length === 0) {
+    if (articles.length === 0 && !loading) {
       return (
         <div className="status-container">
           <p>No articles found for {categoryName}.</p>
@@ -57,7 +65,26 @@ function CategoryPage() {
       );
     }
 
-    return <NewsGrid articles={articles} />;
+    return (
+      <InfiniteScroll
+        dataLength={articles.length}
+        next={fetchMoreData}
+        hasMore={hasMore}
+        loader={
+          <div className="status-container">
+            <div className="spinner"></div>
+            <p>Loading more articles...</p>
+          </div>
+        }
+        endMessage={
+          <p style={{ textAlign: 'center' }}>
+            <b>Yay! You have seen it all</b>
+          </p>
+        }
+      >
+        <NewsGrid articles={articles} />
+      </InfiniteScroll>
+    );
   };
 
   return (

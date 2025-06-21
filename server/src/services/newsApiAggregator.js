@@ -1,7 +1,10 @@
-const axios = require('axios');
-const crypto = require('crypto');
-const config = require('../config/config');
-const log = require('../utils/logger')('NewsApiAggregator');
+import axios from 'axios';
+import crypto from 'crypto';
+import config from '../config/config.js';
+import log from '../utils/logger.js';
+import newsServiceManager from './newsServiceManager.js';
+
+const logger = log('NewsApiAggregator');
 
 // --- Simple In-Memory Cache ---
 const { cache: cacheConfig } = config;
@@ -12,14 +15,14 @@ const getCacheKey = (type, value) => `${type}:${value}`;
 const getFromCache = (key) => {
   const cached = articleCache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
-    log(`Cache HIT for key: ${key}`);
+    logger(`Cache HIT for key: ${key}`);
     return cached.data;
   }
   if (cached) {
-    log(`Cache EXPIRED for key: ${key}`);
+    logger(`Cache EXPIRED for key: ${key}`);
     articleCache.delete(key);
   } else {
-    log(`Cache MISS for key: ${key}`);
+    logger(`Cache MISS for key: ${key}`);
   }
   return null;
 };
@@ -29,14 +32,14 @@ const setInCache = (key, data) => {
     // Evict the oldest item
     const oldestKey = articleCache.keys().next().value;
     articleCache.delete(oldestKey);
-    log(`Cache full. Evicted oldest key: ${oldestKey}`);
+    logger(`Cache full. Evicted oldest key: ${oldestKey}`);
   }
   const cacheItem = {
     data,
     expiresAt: Date.now() + cacheConfig.ttl,
   };
   articleCache.set(key, cacheItem);
-  log(`Cached data for key: ${key}`);
+  logger(`Cached data for key: ${key}`);
 };
 
 // --- Helper Functions ---
@@ -139,7 +142,7 @@ const fetchNewsFromSource = async (source, endpoint, params, normalizer, categor
     const articles = (response.data.articles || response.data.news || response.data.results || response.data.data || response.data.response?.results || []);
     
     if (!Array.isArray(articles)) {
-      log(`WARN: Unexpected response structure from ${source}. Data:`, response.data);
+      logger(`WARN: Unexpected response structure from ${source}. Data:`, response.data);
       throw new Error(`Unexpected response structure from ${source}.`);
     }
     
@@ -152,11 +155,11 @@ const fetchNewsFromSource = async (source, endpoint, params, normalizer, categor
     const errorData = error.response?.data;
     const errorMessage = errorData?.message || errorData?.error?.message || JSON.stringify(errorData);
     
-    log(`ERROR: [${source.toUpperCase()}] Request failed with status ${status}: ${errorMessage}`);
+    logger(`ERROR: [${source.toUpperCase()}] Request failed with status ${status}: ${errorMessage}`);
     
     // Log the full response data for debugging if it exists
     if (errorData) {
-      log(`DEBUG: [${source.toUpperCase()}] Full error response:`, errorData);
+      logger(`DEBUG: [${source.toUpperCase()}] Full error response:`, errorData);
     }
 
     // Re-throw a more informative error
@@ -164,79 +167,57 @@ const fetchNewsFromSource = async (source, endpoint, params, normalizer, categor
   }
 };
 
-const fetchNewsByCategory = async (category, location) => {
-  log(`Fetching news for category: ${category}` + (location ? ` in ${location}` : ''));
-  const { newsapi, gnews, guardian, nytimes } = config.newsApis;
-  const { countryMapping } = config;
+const callNewsApi = (params) => fetchNewsFromSource('newsapi', 'top-headlines', params, normalize.newsapi, params.category);
+const callGNewsApi = (params) => fetchNewsFromSource('gnews', 'search', params, normalize.gnews, params.q);
+const callGuardianApi = (params) => fetchNewsFromSource('guardian', 'search', params, normalize.guardian, params.q);
+const callWorldNewsApi = (params) => fetchNewsFromSource('worldnewsapi', 'search-news', params, normalize.worldnewsapi, params.text);
 
-  // Prepare params with location if available
-  const newsapiParams = { category: config.categoryMapping[category]?.newsapi || category, pageSize: 20 };
-  if (location && countryMapping[location]?.newsapi) newsapiParams.country = countryMapping[location].newsapi;
+/**
+ * Fetches news from all configured sources for a given category.
+ * Delegates to the NewsServiceManager.
+ */
+export async function fetchNewsByCategory(category, location, limit, offset) {
+  logger(`Aggregating news for category: ${category}`);
+  return newsServiceManager.getArticlesByCategory(category, location, limit, offset);
+}
 
-  const gnewsParams = { category: config.categoryMapping[category]?.gnews || category, max: 20 };
-  if (location && countryMapping[location]?.gnews) gnewsParams.country = countryMapping[location].gnews;
+/**
+ * Fetches news from all configured sources for a given set of categories.
+ * Delegates to the NewsServiceManager.
+ */
+export async function fetchNewsByCategories(categories, location, limit, offset) {
+  logger(`Aggregating news for categories: ${categories.join(', ')}`);
   
-  const promises = [
-    fetchNewsFromSource('newsapi', 'top-headlines', newsapiParams, normalize.newsapi, category),
-    fetchNewsFromSource('gnews', 'top-headlines', gnewsParams, normalize.gnews, category),
-    fetchNewsFromSource('guardian', 'search', { section: config.categoryMapping[category]?.guardian || category, 'page-size': 20, 'show-fields': 'trailText,bodyText,thumbnail' }, normalize.guardian, category),
-    fetchNewsFromSource('nytimes', `topstories/v2/${config.categoryMapping[category]?.nytimes || 'home'}.json`, {}, normalize.nytimes, category),
-  ];
+  const promises = categories.map(category => 
+    newsServiceManager.getArticlesByCategory(category, location, limit, offset)
+  );
 
   const results = await Promise.allSettled(promises);
 
-  results.forEach(result => {
-    if (result.status === 'rejected') {
-      log(`A source failed to fetch: ${result.reason?.message || result.reason}`);
-    }
-  });
-
   const allArticles = results
-      .filter(res => res.status === 'fulfilled' && Array.isArray(res.value))
-      .flatMap(res => res.value);
+    .filter(res => res.status === 'fulfilled' && res.value?.articles)
+    .flatMap(res => res.value.articles);
+    
+  const allErrors = results
+    .filter(res => res.status === 'rejected')
+    .map(res => ({ source: 'Aggregator', message: res.reason.message, code: 'FETCH_ERROR' }));
 
-  return deduplicateArticles(allArticles);
-};
+  const uniqueArticles = newsServiceManager.deduplicateArticles(allArticles);
 
-const searchNewsByKeyword = async (keyword, location) => {
-  log(`Searching news for keyword: ${keyword}` + (location ? ` in ${location}` : ''));
-  const { newsapi, gnews, worldnewsapi, guardian } = config.newsApis;
-  const { countryMapping } = config;
+  return { articles: uniqueArticles, errors: allErrors };
+}
 
-  // Prepare params with location if available
-  const newsapiParams = { q: keyword, pageSize: 20 };
-  if (location && countryMapping[location]?.newsapi) newsapiParams.country = countryMapping[location].newsapi;
+/**
+ * Searches for news from all configured sources by a keyword.
+ * Delegates to the NewsServiceManager.
+ */
+export async function searchNewsByKeyword(keyword, location, limit, offset) {
+  logger(`Aggregating search for keyword: ${keyword}`);
+  return newsServiceManager.searchArticles(keyword, null, location, limit, offset);
+}
 
-  const gnewsParams = { q: keyword, max: 20 };
-  if (location && countryMapping[location]?.gnews) gnewsParams.country = countryMapping[location].gnews;
-
-  const worldnewsapiParams = { text: keyword, number: 20 };
-  if (location && countryMapping[location]?.worldnewsapi) worldnewsapiParams['source-countries'] = countryMapping[location].worldnewsapi;
-
-  const promises = [
-      fetchNewsFromSource('newsapi', 'everything', newsapiParams, normalize.newsapi),
-      fetchNewsFromSource('gnews', 'search', gnewsParams, normalize.gnews),
-      fetchNewsFromSource('worldnewsapi', 'search-news', worldnewsapiParams, normalize.worldnewsapi),
-      fetchNewsFromSource('guardian', 'search', { q: keyword, 'page-size': 20, 'show-fields': 'trailText,bodyText,thumbnail' }, normalize.guardian),
-  ];
-
-  const results = await Promise.allSettled(promises);
-
-  results.forEach(result => {
-    if (result.status === 'rejected') {
-        log(`A source failed to search: ${result.reason?.message || result.reason}`);
-    }
-  });
-
-  const allArticles = results
-      .filter(res => res.status === 'fulfilled' && Array.isArray(res.value))
-      .flatMap(res => res.value);
-      
-  return deduplicateArticles(allArticles);
-};
-
-const fetchWeather = async (location) => {
-    log(`Fetching weather for location: ${location}`);
+export const fetchWeather = async (location) => {
+    logger(`Fetching weather for location: ${location}`);
     try {
         const apiKey = config.newsApis.weatherstack.apiKey;
         if (!apiKey) throw new Error('Weatherstack API key missing');
@@ -245,13 +226,7 @@ const fetchWeather = async (location) => {
         const response = await axios.get(config.newsApis.weatherstack.baseUrl + '/current', { params });
         return response.data;
     } catch (error) {
-        log(`Failed to fetch weather: ${error.message}`);
+        logger(`Failed to fetch weather: ${error.message}`);
         return { error: error.message };
     }
-}
-
-module.exports = {
-  fetchNewsByCategory,
-  searchNewsByKeyword,
-  fetchWeather,
-}; 
+};

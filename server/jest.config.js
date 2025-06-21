@@ -1,8 +1,17 @@
-module.exports = {
+export default {
   testEnvironment: 'node',
-  collectCoverage: true,
-  collectCoverageFrom: [
-    'src/services/newsServiceManager.js'
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  transform: {},
+  transformIgnorePatterns: [
+    'node_modules/(?!(dotenv)/)',
   ],
-  testPathIgnorePatterns: ['/src/ai/test.js']
-};
+  testMatch: [
+    '**/__tests__/**/*.js',
+    '**/?(*.)+(spec|test).js'
+  ],
+  testTimeout: 10000,
+  clearMocks: true,
+  verbose: true
+}; 

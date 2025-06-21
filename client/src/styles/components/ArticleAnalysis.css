@@ -1,0 +1,264 @@
+.analysis-result {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.analysis-result h3 {
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+
+.sentiment-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.sentiment-icon {
+  font-size: 20px;
+}
+
+.analysis-summary {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  border-left: 4px solid #1a73e8;
+}
+
+.dark-mode .analysis-summary {
+  background-color: #2e2e2e;
+  border-left-color: #64b5f6;
+}
+
+.analysis-summary h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 16px;
+  color: #202124;
+}
+
+.dark-mode .analysis-summary h4 {
+  color: #e0e0e0;
+}
+
+.overall-sentiment {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  border-left: 4px solid #1a73e8;
+}
+
+.dark-mode .overall-sentiment {
+  background-color: #2e2e2e;
+  border-left-color: #64b5f6;
+}
+
+.overall-sentiment h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 16px;
+  color: #202124;
+}
+
+.dark-mode .overall-sentiment h4 {
+  color: #e0e0e0;
+}
+
+.sentiment-section {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  border-left: 4px solid #1a73e8;
+}
+
+.dark-mode .sentiment-section {
+  background-color: #2e2e2e;
+  border-left-color: #64b5f6;
+}
+
+.sentiment-section-title {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: #202124;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+.dark-mode .sentiment-section-title {
+  color: #e0e0e0;
+  border-bottom-color: #3c4043;
+}
+
+.sentiment-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.sentiment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.dark-mode .sentiment-item {
+  background-color: #3c4043;
+  border-color: #5f6368;
+}
+
+.sentiment-label {
+  font-weight: 500;
+  color: #3c4043;
+}
+
+.dark-mode .sentiment-label {
+  color: #e8eaed;
+}
+
+.sentiment-score {
+  font-weight: bold;
+}
+
+.sentiment-text {
+  font-style: italic;
+  color: #5f6368;
+}
+
+.dark-mode .sentiment-text {
+  color: #9aa0a6;
+}
+
+.identified-entities {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  border-left: 4px solid #1a73e8;
+}
+
+.dark-mode .identified-entities {
+  background-color: #2e2e2e;
+  border-left-color: #64b5f6;
+}
+
+.identified-entities h4 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: #202124;
+}
+
+.dark-mode .identified-entities h4 {
+  color: #e0e0e0;
+}
+
+.entities-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.entity-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.entity-group strong {
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #3c4043;
+}
+
+.dark-mode .entity-group strong {
+  color: #e8eaed;
+}
+
+.entity-group span {
+  font-size: 0.9em;
+  color: #5f6368;
+  padding-left: 8px;
+}
+
+.dark-mode .entity-group span {
+  color: #9aa0a6;
+}
+
+.recommendations {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  border-left: 4px solid #1a73e8;
+}
+
+.dark-mode .recommendations {
+  background-color: #2e2e2e;
+  border-left-color: #64b5f6;
+}
+
+.recommendations h4 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: #202124;
+}
+
+.dark-mode .recommendations h4 {
+  color: #e0e0e0;
+}
+
+.recommendations-list {
+  list-style: none;
+  padding: 0;
+}
+
+.recommendation-item {
+  margin-bottom: 8px;
+  color: #1a73e8;
+  cursor: pointer;
+}
+
+.dark-mode .recommendation-item {
+  color: #64b5f6;
+}
+
+.analysis-metadata {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.dark-mode .analysis-metadata {
+  border-top-color: #3c4043;
+}
+
+.analysis-metadata small {
+  font-size: 12px;
+  color: #5f6368;
+}
+
+.dark-mode .analysis-metadata small {
+  color: #9aa0a6;
+}
+
+
+@media (max-width: 768px) {
+  .sentiment-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .sentiment-score {
+    align-self: flex-end;
+  }
+} 

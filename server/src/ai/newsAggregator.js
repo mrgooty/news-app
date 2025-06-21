@@ -1,12 +1,12 @@
-const { ChatOpenAI } = require('@langchain/openai');
-const { createGraph, StateGraph } = require('@langchain/langgraph');
-const { StringOutputParser } = require('@langchain/core/output_parsers');
-const { ChatPromptTemplate } = require('@langchain/core/prompts');
-const config = require('../config/config');
-const NewsProcessor = require('./newsProcessor');
-const NewsOrchestrator = require('./newsOrchestrator');
-const CacheManager = require('./cacheManager');
-const TextUtils = require('./textUtils');
+import { ChatOpenAI } from '@langchain/openai';
+import { createGraph, StateGraph } from '@langchain/langgraph';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import config from '../config/config.js';
+import NewsProcessor from './newsProcessor.js';
+import NewsOrchestrator from './newsOrchestrator.js';
+import CacheManager from './cacheManager.js';
+import TextUtils from './textUtils.js';
 
 /**
  * News Aggregator using LangChain and LangGraph
@@ -324,4 +324,4 @@ class NewsAggregator {
   }
 }
 
-module.exports = NewsAggregator;
+export default NewsAggregator;

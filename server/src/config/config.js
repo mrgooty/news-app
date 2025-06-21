@@ -1,7 +1,19 @@
-const path = require('path');
+import path from 'path';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
-// Configuration settings for the server
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Correctly load .env file from the 'server' directory
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+// Log to confirm if keys are loaded (optional, for debugging)
+if (process.env.NEWS_API_KEY) {
+  console.log('NewsAPI Key Loaded Successfully.');
+} else {
+  console.log('NewsAPI Key not found. Check your .env file.');
+}
 
 const config = {
   // Server configuration
@@ -143,58 +155,69 @@ const config = {
       gnews: 'business',
       guardian: 'business',
       nytimes: 'business',
-     
+      worldnewsapi: 'business',
     },
     technology: {
       newsapi: 'technology',
       gnews: 'technology',
       guardian: 'technology',
       nytimes: 'technology',
+      worldnewsapi: 'technology',
     },
     entertainment: {
       newsapi: 'entertainment',
       gnews: 'entertainment',
       guardian: 'culture',
       nytimes: 'arts',
-     
+      worldnewsapi: 'entertainment',
     },
     sports: {
       newsapi: 'sports',
       gnews: 'sports',
       guardian: 'sport',
       nytimes: 'sports',
+      worldnewsapi: 'sports',
     },
     science: {
       newsapi: 'science',
       gnews: 'science',
       guardian: 'science',
       nytimes: 'science',
+      worldnewsapi: 'science',
     },
     health: {
       newsapi: 'health',
       gnews: 'health',
       guardian: 'lifeandstyle',
       nytimes: 'health',
+      worldnewsapi: 'health',
     },
     general: {
       newsapi: 'general',
       gnews: 'general',
       guardian: 'news',
       nytimes: 'home',
-      
+      worldnewsapi: 'general',
     },
     world: {
-      newsapi: 'general',
+      newsapi: 'general', // NewsAPI uses 'general' for world news
       gnews: 'world',
       guardian: 'world',
       nytimes: 'world',
+      worldnewsapi: 'world',
     },
     politics: {
-      newsapi: 'general',
-      gnews: 'nation',
+      newsapi: 'general', // No direct politics category in NewsAPI free tier
+      gnews: 'politics',
       guardian: 'politics',
       nytimes: 'politics',
+      worldnewsapi: 'politics',
     },
+    // Weatherstack does not have news categories.
+    // We can map all to a generic query or handle it in the service itself.
+    weather: {
+      weatherstack: 'weather', // A dummy category for weatherstack
+    }
   },
   
   // Country/location mapping
@@ -236,4 +259,4 @@ const config = {
   },
 };
 
-module.exports = config;
+export default config;
