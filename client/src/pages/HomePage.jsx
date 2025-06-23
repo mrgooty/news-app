@@ -27,7 +27,7 @@ function HomePage() {
   };
 
   const renderContent = () => {
-    if (loading && articles.length === 0) {
+    if ((loading) && articles.length === 0) {
       return (
         <div className="status-container">
           <div className="spinner"></div>
@@ -85,22 +85,24 @@ function HomePage() {
   };
 
   return (
-    <div className="news-view">
-      <div className="home-header">
-        <h1 className="view-title">
-          {selectedCategories.length === 0 ? 'Top Stories' : 'For You'}
-        </h1>
-        {selectedCategories.length === 0 && isLoaded && (
-          <div className="onboarding-message">
-            <p>Get a personalized feed by selecting your favorite topics.</p>
-            <Link to="/preferences" className="cta-button">
-              Customize Feed
-            </Link>
-          </div>
-        )}
+    <div className="home-page">
+      <div className="news-view">
+        <div className="home-header">
+          <h1 className="view-title">
+            {selectedCategories.length === 0 ? 'Top Stories' : 'For You'}
+          </h1>
+          {selectedCategories.length === 0 && isLoaded && (
+            <div className="onboarding-message">
+              <p>Get a personalized feed by selecting your favorite topics.</p>
+              <Link to="/preferences" className="cta-button">
+                Customize Feed
+              </Link>
+            </div>
+          )}
+        </div>
+        {renderContent()}
+        <NewsDetailModal />
       </div>
-      {renderContent()}
-      <NewsDetailModal />
     </div>
   );
 }

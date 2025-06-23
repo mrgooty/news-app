@@ -1,4 +1,5 @@
-const log = require('../utils/logger')('SummarizationService');
+import logger from '../utils/logger.js';
+const log = logger('SummarizationService');
 
 // Helper to dynamically import the pipeline function, ensuring it's only imported once.
 let pipelinePromise = null;
@@ -75,4 +76,4 @@ class SummarizationService {
 }
 
 // Export a singleton instance so the model is only loaded once.
-module.exports = new SummarizationService(); 
+export default new SummarizationService(); 

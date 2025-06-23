@@ -195,34 +195,148 @@ const resolvers = {
      * Resolver to get aggregation metadata for monitoring and analytics.
      */
     aggregationMeta: async () => {
-      logger('Resolving aggregationMeta');
+    },
+
+    /**
+     * Resolver to get current weather for a location
+     */
+    getWeather: async (_, { location }) => {
+      logger(`Resolving getWeather for location: ${location}`);
       try {
-        const startTime = Date.now();
-        
-        // Get service status
-        const serviceStatus = newsServiceManager.getServiceStatus();
-        const availableSources = Object.entries(serviceStatus)
-          .filter(([_, available]) => available)
-          .map(([source, _]) => source);
-        
-        // Get total articles count (approximate)
-        const totalArticles = await newsServiceManager.getTopHeadlines(null, null, 1);
-        
-        const processingTime = Date.now() - startTime;
+        const weatherService = newsServiceManager.services.weatherstack;
+        const weatherData = await weatherService.getCurrentWeather(location);
         
         return {
-          sources: availableSources,
-          lastUpdated: new Date().toISOString(),
-          totalArticles: totalArticles.articles?.length || 0,
-          processingTime: processingTime
+          location: `${weatherData.location.name}, ${weatherData.location.country}`,
+          temperature: weatherData.current.temperature,
+          feelsLike: weatherData.current.feelslike,
+          description: weatherData.current.weather_descriptions[0],
+          icon: weatherData.current.weather_icons[0],
+          humidity: weatherData.current.humidity,
+          windSpeed: weatherData.current.wind_speed,
+          windDirection: weatherData.current.wind_dir,
+          pressure: weatherData.current.pressure,
+          visibility: weatherData.current.visibility,
+          uvIndex: weatherData.current.uv_index,
+          lastUpdated: new Date(weatherData.location.localtime_epoch * 1000).toISOString()
         };
       } catch (error) {
-        logger.error('Error in aggregationMeta resolver:', error);
+        logger.error(`Error in getWeather resolver:`, error);
+        throw new Error(`Failed to get weather for ${location}`);
+      }
+    },
+
+    /**
+     * Resolver to get weather by coordinates
+     */
+    getWeatherByCoordinates: async (_, { lat, lon }) => {
+      logger(`Resolving getWeatherByCoordinates for lat: ${lat}, lon: ${lon}`);
+      try {
+        const weatherService = newsServiceManager.services.weatherstack;
+        const weatherData = await weatherService.getWeatherByCoordinates(lat, lon);
+        
         return {
-          sources: [],
-          lastUpdated: new Date().toISOString(),
-          totalArticles: 0,
-          processingTime: 0
+          location: `${weatherData.location.name}, ${weatherData.location.country}`,
+          temperature: weatherData.current.temperature,
+          feelsLike: weatherData.current.feelslike,
+          description: weatherData.current.weather_descriptions[0],
+          icon: weatherData.current.weather_icons[0],
+          humidity: weatherData.current.humidity,
+          windSpeed: weatherData.current.wind_speed,
+          windDirection: weatherData.current.wind_dir,
+          pressure: weatherData.current.pressure,
+          visibility: weatherData.current.visibility,
+          uvIndex: weatherData.current.uv_index,
+          lastUpdated: new Date(weatherData.location.localtime_epoch * 1000).toISOString()
+        };
+      } catch (error) {
+        logger.error(`Error in getWeatherByCoordinates resolver:`, error);
+        throw new Error(`Failed to get weather for coordinates ${lat}, ${lon}`);
+      }
+    },
+
+    /**
+     * Resolver to get weather by US zip code
+     */
+    getWeatherByZipCode: async (_, { zipCode }) => {
+      logger(`Resolving getWeatherByZipCode for zipCode: ${zipCode}`);
+      try {
+        const weatherService = newsServiceManager.services.weatherstack;
+        const weatherData = await weatherService.getWeatherByZipCode(zipCode);
+        
+        return {
+          location: `${weatherData.location.name}, ${weatherData.location.country}`,
+          temperature: weatherData.current.temperature,
+          feelsLike: weatherData.current.feelslike,
+          description: weatherData.current.weather_descriptions[0],
+          icon: weatherData.current.weather_icons[0],
+          humidity: weatherData.current.humidity,
+          windSpeed: weatherData.current.wind_speed,
+          windDirection: weatherData.current.wind_dir,
+          pressure: weatherData.current.pressure,
+          visibility: weatherData.current.visibility,
+          uvIndex: weatherData.current.uv_index,
+          lastUpdated: new Date(weatherData.location.localtime_epoch * 1000).toISOString()
+        };
+      } catch (error) {
+        logger.error(`Error in getWeatherByZipCode resolver:`, error);
+        throw new Error(`Failed to get weather for zip code ${zipCode}`);
+      }
+    },
+
+    /**
+     * Resolver to get user location information
+     */
+    getUserLocation: async () => {
+      logger("Resolving getUserLocation");
+      try {
+        const locationService = await import("../services/locationService.js");
+        const locationData = await locationService.default.getLocation();
+        
+        return {
+          country: locationData.country,
+          countryCode: locationData.countryCode,
+          region: locationData.region,
+          regionCode: locationData.regionCode,
+          city: locationData.city,
+          zip: locationData.zip,
+          lat: locationData.lat,
+          lon: locationData.lon,
+          timezone: locationData.timezone,
+          formatted: locationService.default.formatLocation(locationData)
+        };
+      } catch (error) {
+        logger.error(`Error in getUserLocation resolver:`, error);
+        throw new Error("Failed to get user location");
+      }
+    },
+
+    /**
+     * Resolver to get local news for a location
+     */
+    getLocalNews: async (_, { location, first = 20 }) => {
+      logger(`Resolving getLocalNews for location: ${location}, first: ${first}`);
+      try {
+        const result = await newsServiceManager.getLocalNews(location, first);
+        
+        return dataLoader.paginateArticles(result.articles || [], null, first);
+      } catch (error) {
+        logger.error(`Error in getLocalNews resolver:`, error);
+        return {
+          edges: [],
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: null,
+            endCursor: null
+          },
+          totalCount: 0,
+          errors: [{
+            source: "GraphQL",
+            message: error.message,
+            code: "RESOLVER_ERROR",
+            retryable: true
+          }]
         };
       }
     },

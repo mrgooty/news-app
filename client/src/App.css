@@ -40,3 +40,16 @@
 .read-the-docs {
   color: #888;
 }
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--background-primary);
+}
+
+.main-content {
+  flex: 1 1 auto;
+  padding-top: 80px; /* Adjust based on header height */
+  width: 100%;
+}

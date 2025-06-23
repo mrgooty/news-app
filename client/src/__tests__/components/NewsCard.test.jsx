@@ -3,6 +3,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import NewsCard from '../../components/NewsCard';
 import uiStateSlice from '../../store/slices/uiStateSlice';
+import { vi } from 'vitest';
 
 // Mock the Redux store
 const createTestStore = (initialState = {}) => {
@@ -33,12 +34,14 @@ const mockArticle = {
   category: 'technology'
 };
 
-// Mock IntersectionObserver
-global.IntersectionObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}));
+// Replace jest.fn() with vi.fn() for IntersectionObserver
+beforeAll(() => {
+  global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  }));
+});
 
 describe('NewsCard Component', () => {
   let store;

@@ -4,16 +4,17 @@ import { usePrefs } from '../../hooks/usePrefs';
 import * as prefsLib from '../../lib/prefs';
 
 // Mock the prefs library
-vi.mock('../../lib/prefs', () => ({
-  loadPrefs: vi.fn(),
-  savePrefs: vi.fn(),
-  defaultPrefs: {
-    categories: ['technology', 'business'],
-    location: 'us',
-    readingMode: 'comfortable',
-    theme: 'light'
-  }
-}));
+vi.mock('../../lib/prefs', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getPrefs: vi.fn(),
+    setPrefs: vi.fn(),
+    loadPrefs: vi.fn(),
+    savePrefs: vi.fn(),
+    // add any other exports as needed
+  };
+});
 
 describe('usePrefs Hook', () => {
   beforeEach(() => {

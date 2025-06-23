@@ -1,86 +1,156 @@
 import BaseNewsService from './baseNewsService.js';
+import log from '../utils/logger.js';
+
+const logger = log('WeatherstackApiService');
 
 /**
  * Service class for interacting with the Weatherstack API.
- * This service adapts weather data into the application's article format.
  */
 class WeatherstackApiService extends BaseNewsService {
-  constructor(config) {
-    super(config);
+  constructor() {
+    super('weatherstack');
     this.endpoint = 'current';
   }
 
   /**
-   * Normalizes weather data into a standard article format.
-   * @param {object} weatherData - The weather data object from the Weatherstack API.
-   * @returns {object} A normalized article-like object.
+   * Get current weather data for a location.
+   * This is the primary method to interact with the Weatherstack API.
+   * @param {string} location - City name, coordinates, or IP address ('check').
+   * @returns {Promise<Object>} The raw weather data from the API.
    */
-  normalizeArticle(weatherData) {
-    const { location, current } = weatherData;
-    if (!location || !current) {
-      return null;
+  async getWeather(location) {
+    if (!location) {
+      logger.error('getWeather requires a location.');
+      throw new Error('Location is required for fetching weather data.');
     }
 
-    return {
-      id: `weather_${location.lat}_${location.lon}`,
-      title: `Weather in ${location.name}, ${location.country}`,
-      description: `Currently ${current.weather_descriptions.join(', ')} at ${current.temperature}°C.`,
-      content: `The current weather in ${location.name} is ${current.temperature}°C, but it feels like ${current.feelslike}°C. ` +
-               `The wind is blowing at ${current.wind_speed} km/h from the ${current.wind_dir}. ` +
-               `Humidity is at ${current.humidity}%.`,
-      url: `https://weatherstack.com/ws_go.php?query=${location.name}`,
-      imageUrl: current.weather_icons[0] || null,
-      source: 'Weatherstack',
-      publishedAt: new Date(location.localtime_epoch * 1000).toISOString(),
-      category: 'weather',
-    };
-  }
-
-  /**
-   * Fetches weather data for a location. The category is ignored.
-   * @param {string} category - Ignored for this service.
-   * @param {string} location - The location to fetch weather for.
-   * @param {number} limit - Ignored. Only one "article" is returned.
-   * @returns {Promise<Array<object>>} A promise resolving to an array with a single weather "article".
-   */
-  async getArticlesByCategory(category, location = 'New York', limit = 1) {
-    if (!location) return [];
-
     const params = {
-      access_key: this.apiKey,
       query: location,
+      units: 'f' // Request Fahrenheit
     };
     
-    const data = await this.fetch(this.endpoint, params);
-    const normalized = this.normalizeArticle(data);
-    return normalized ? [normalized] : [];
+    try {
+      logger(`Fetching weather for location: ${location}`);
+      const data = await this.httpClient.get(this.endpoint, params);
+      
+      // Basic validation of the response
+      if (data && data.current && data.location) {
+        return this.normalizeWeatherData(data);
+      } else {
+        logger.error('Received invalid weather data structure from Weatherstack', data);
+        throw new Error('Invalid data structure from weather API.');
+      }
+    } catch (error) {
+      logger.error(`[${this.serviceName}] Error fetching weather data for "${location}":`, error.message);
+      logger.error(`Full error details:`, error);
+      // Re-throw a more generic error to not expose implementation details.
+      throw new Error('Failed to retrieve weather data.');
+    }
   }
 
   /**
-   * Searches for weather by location using the keyword.
-   * @param {string} keyword - The location to search for.
-   * @param {string} category - Ignored.
-   * @param {string} location - If provided, overrides keyword.
-   * @param {number} limit - Ignored.
-   * @returns {Promise<Array<object>>} A promise resolving to an array with a single weather "article".
+   * Get current weather data for a location (alias for getWeather).
+   * This method is used by GraphQL resolvers.
+   * @param {string} location - City name, coordinates, or IP address ('check').
+   * @returns {Promise<Object>} The raw weather data from the API.
    */
-  async searchArticles(keyword, category = null, location = null, limit = 1) {
-    const query = location || keyword;
-    if (!query) return [];
-
-    return this.getArticlesByCategory(null, query, limit);
+  async getCurrentWeather(location) {
+    return this.getFullWeatherData(location);
   }
 
   /**
-   * Fetches top headlines, which for weather means the weather for a default or specified location.
-   * @param {string} category - Ignored.
-   * @param {string} location - The location.
-   * @param {number} limit - Ignored.
-   * @returns {Promise<Array<object>>} A promise resolving to an array with a single weather "article".
+   * Get weather data by coordinates.
+   * @param {number} lat - Latitude
+   * @param {number} lon - Longitude
+   * @returns {Promise<Object>} The raw weather data from the API.
    */
-  async getTopHeadlines(category = null, location = 'New York', limit = 1) {
-    return this.getArticlesByCategory(category, location, limit);
+  async getWeatherByCoordinates(lat, lon) {
+    if (!lat || !lon) {
+      logger.error('getWeatherByCoordinates requires both lat and lon.');
+      throw new Error('Latitude and longitude are required for fetching weather data.');
+    }
+
+    const location = `${lat},${lon}`;
+    return this.getFullWeatherData(location);
+  }
+
+  /**
+   * Get weather data by US zip code.
+   * @param {string} zipCode - US zip code
+   * @returns {Promise<Object>} The raw weather data from the API.
+   */
+  async getWeatherByZipCode(zipCode) {
+    if (!zipCode) {
+      logger.error('getWeatherByZipCode requires a zip code.');
+      throw new Error('Zip code is required for fetching weather data.');
+    }
+
+    return this.getFullWeatherData(zipCode);
+  }
+
+  /**
+   * Get the full weather data structure as expected by GraphQL resolvers.
+   * @param {string} location - City name, coordinates, or IP address ('check').
+   * @returns {Promise<Object>} The full weather data structure.
+   */
+  async getFullWeatherData(location) {
+    if (!location) {
+      logger.error('getFullWeatherData requires a location.');
+      throw new Error('Location is required for fetching weather data.');
+    }
+
+    const params = {
+      query: location,
+      units: 'f' // Request Fahrenheit
+    };
+    
+    try {
+      logger(`Fetching full weather data for location: ${location}`);
+      logger(`API Config:`, this.apiConfig);
+      logger(`Params:`, params);
+      const data = await this.httpClient.get(this.endpoint, params);
+      
+      // Basic validation of the response
+      if (data && data.current && data.location) {
+        return data; // Return the full data structure
+      } else {
+        logger.error('Received invalid weather data structure from Weatherstack', data);
+        throw new Error('Invalid data structure from weather API.');
+      }
+    } catch (error) {
+      logger.error(`[${this.serviceName}] Error fetching weather data for "${location}":`, error.message);
+      logger.error(`Full error details:`, error);
+      // Re-throw a more generic error to not expose implementation details.
+      throw new Error('Failed to retrieve weather data.');
+    }
+  }
+  
+  /**
+   * Normalizes the raw weather data from Weatherstack API into a clean, consistent format.
+   * @param {object} data - The raw data object from the Weatherstack API.
+   * @returns {object} A normalized weather data object.
+   */
+  normalizeWeatherData(data) {
+    const { location, current } = data;
+    return {
+      location: location.name,
+      country: location.country,
+      lat: parseFloat(location.lat),
+      lon: parseFloat(location.lon),
+      localtime: location.localtime,
+      temperature: current.temperature,
+      feelsLike: current.feelslike,
+      description: current.weather_descriptions[0],
+      icon: current.weather_code,
+      humidity: current.humidity,
+      windSpeed: current.wind_speed,
+      windDirection: current.wind_dir,
+      pressure: current.pressure,
+      visibility: current.visibility,
+      uvIndex: current.uv_index,
+      lastUpdated: current.observation_time,
+    };
   }
 }
 
-export default WeatherstackApiService; 
+export default WeatherstackApiService;

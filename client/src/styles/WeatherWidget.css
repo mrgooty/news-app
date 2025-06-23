@@ -1,0 +1,241 @@
+.weather-widget {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  background-color: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  justify-content: center;
+}
+
+.weather-widget:hover {
+  color: var(--color-primary);
+}
+
+.weather-widget.loading,
+.weather-widget.error,
+.weather-widget.location-input {
+  justify-content: center;
+}
+
+.weather-widget .spinner {
+  width: 18px;
+  height: 18px;
+}
+
+.weather-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--color-primary);
+}
+
+.weather-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.weather-temp {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.weather-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  text-transform: capitalize;
+}
+
+.weather-details {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background-color: var(--background-glass);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: var(--border-radius-large);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 1010;
+  width: 300px;
+  border: 1px solid var(--glass-border-color);
+}
+
+.weather-widget.expanded .weather-details {
+  display: block;
+}
+
+.weather-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.detail-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Location Input Styles */
+.location-input-container {
+  background-color: var(--color-background-elevated);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+  min-width: 250px;
+  text-align: center;
+}
+
+.location-input-container h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.location-input-container p {
+  margin: 0 0 1rem 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.location-input-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.location-input-container input {
+  padding: 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.location-input-container input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-alpha);
+}
+
+.location-input-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.location-input-buttons button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.location-input-buttons button[type="submit"] {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.location-input-buttons button[type="submit"]:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.location-input-buttons button[type="submit"]:disabled {
+  background-color: var(--color-text-tertiary);
+  cursor: not-allowed;
+}
+
+.location-input-buttons button[type="button"] {
+  background-color: var(--color-background-secondary);
+  color: var(--color-text);
+}
+
+.location-input-buttons button[type="button"]:hover {
+  background-color: var(--color-border);
+}
+
+/* Error and Retry Styles */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.retry-button {
+  padding: 0.3rem 0.8rem;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: var(--color-primary-dark);
+}
+
+/* Stale Data Indicators */
+.weather-widget.stale .weather-info {
+  opacity: 0.7;
+}
+
+.stale-indicator {
+  color: var(--color-warning);
+  font-size: 0.8rem;
+  margin-left: 0.2rem;
+}
+
+.stale-warning {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background-color: var(--color-warning-alpha);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-warning);
+}
+
+.stale-warning p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.8rem;
+  color: var(--color-text);
+}
+
+.refresh-button {
+  padding: 0.4rem 0.8rem;
+  background-color: var(--color-warning);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.refresh-button:hover {
+  background-color: var(--color-warning-dark);
+}

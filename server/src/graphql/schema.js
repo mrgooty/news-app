@@ -27,15 +27,6 @@ const typeDefs = `#graphql
     code: String!
   }
 
-  # Represents the result of an article analysis
-  type AnalysisResult {
-    summary: String
-    sentiment: String
-    sentimentLabel: String
-    confidence: Float
-    entities: [Entity]
-  }
-
   # Represents an entity extracted from article content
   type Entity {
     name: String!
@@ -43,42 +34,62 @@ const typeDefs = `#graphql
     confidence: Float
   }
   
-  # Represents an error from a news source
-  type Error {
-    source: String!
-    message: String!
-    code: String
-    retryable: Boolean!
-  }
-
-  # Page info for cursor-based pagination
-  type PageInfo {
-    hasNextPage: Boolean!
-    hasPreviousPage: Boolean!
-    startCursor: String
-    endCursor: String
-  }
-
-  # Connection pattern for articles with cursor-based pagination
-  type ArticleConnection {
-    edges: [ArticleEdge!]!
-    pageInfo: PageInfo!
-    totalCount: Int!
-    errors: [Error]
-  }
-
-  # Edge in the connection pattern
-  type ArticleEdge {
-    node: Article!
-    cursor: String!
-  }
-
   # Aggregation metadata
   type AggregationMeta {
     sources: [String!]!
     lastUpdated: String!
     totalArticles: Int!
     processingTime: Float!
+  }
+
+  # Represents additional data about an article
+  type ArticleData {
+    title: String
+    contentLength: Int
+    wordCount: Int
+    readingTime: Int
+    summary: String
+  }
+
+  # Represents weather information
+  type Weather {
+    location: String!
+    temperature: Int!
+    feelsLike: Int!
+    description: String!
+    icon: String
+    humidity: Int!
+    windSpeed: Float!
+    windDirection: String!
+    pressure: Int!
+    visibility: Float!
+    uvIndex: Int!
+    lastUpdated: String!
+  }
+
+  # Represents location information
+  type LocationInfo {
+    ip: String
+    country: String
+    city: String
+    region: String
+    zip: String
+    lat: Float
+    lon: Float
+    formatted: String
+  }
+
+  type ArticleAnalysis {
+    summary: String
+    sentiment: String
+    sentimentLabel: String
+    confidence: Float
+    entities: [Entity]
+  }
+
+  type ComprehensiveAnalysis {
+    url: String!
+    analysis: ArticleAnalysis
   }
 
   # The main queries available to the client
@@ -122,10 +133,25 @@ const typeDefs = `#graphql
     ): ArticleConnection!
 
     # Analyze an article to get a summary and sentiment analysis
-    analyzeArticle(content: String!, title: String!): AnalysisResult!
+    analyzeArticle(content: String!, title: String): ArticleAnalysis
 
     # Get aggregation metadata
     aggregationMeta: AggregationMeta!
+
+    # Get current weather for a location
+    getWeather(location: String): Weather
+    getWeatherByCoordinates(lat: Float!, lon: Float!): Weather
+    getWeatherByZipCode(zipCode: String!): Weather
+    getUserLocation: LocationInfo
+
+    # Get local news for a location
+    getLocalNews(location: String, first: Int = 20): ArticleConnection!
+
+    # Get user preferences
+    getPreferences: UserPreferences
+
+    # Get comprehensive analysis of an article
+    comprehensiveAnalysis(url: String!): ComprehensiveAnalysis
   }
 
   # Mutations for real-time updates
@@ -138,6 +164,9 @@ const typeDefs = `#graphql
       categories: [String!]!
       location: String
     ): ArticleConnection!
+
+    savePreferences(categories: [String], location: String, zipCode: String): UserPreferences
+    # setAIParameters(parameters: AIParametersInput!): AIParameters
   }
 
   # Subscriptions for real-time updates
@@ -147,6 +176,46 @@ const typeDefs = `#graphql
     
     # Subscribe to breaking news
     breakingNews: Article!
+  }
+
+  type UserPreferences {
+    selectedCategories: [String]
+    locations: [String!]
+    zipCode: String
+  }
+
+  type AIParameters {
+    id: ID
+  }
+
+  input AIParametersInput {
+    id: ID
+  }
+
+  type ArticleError {
+    source: String
+    message: String
+    code: String
+    retryable: Boolean
+  }
+
+  type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+  }
+  
+  type ArticleEdge {
+    cursor: String!
+    node: Article!
+  }
+
+  type ArticleConnection {
+    edges: [ArticleEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+    errors: [ArticleError]
   }
 `;
 

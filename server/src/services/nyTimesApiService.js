@@ -4,8 +4,8 @@ import BaseNewsService from './baseNewsService.js';
  * Service class for interacting with the New York Times API.
  */
 class NyTimesApiService extends BaseNewsService {
-  constructor(config) {
-    super(config);
+  constructor() {
+    super('nytimes');
     this.endpoint = 'svc/search/v2/articlesearch.json';
   }
 
@@ -41,10 +41,10 @@ class NyTimesApiService extends BaseNewsService {
     const params = {
       sort: 'newest',
       page: 0,
-      'api-key': this.apiKey,
+      
     };
 
-    const fqParts = [`news_desk:("${this.getCategoryMapping(category)}")`];
+    const fqParts = [`news_desk:("${this.mapCategory(category)}")`];
     if (location) {
       fqParts.push(`glocations:("${location}")`);
     }
@@ -67,12 +67,12 @@ class NyTimesApiService extends BaseNewsService {
       q: keyword,
       sort: 'relevance',
       page: 0,
-      'api-key': this.apiKey,
+      
     };
 
     const fqParts = [];
     if (category) {
-      fqParts.push(`news_desk:("${this.getCategoryMapping(category)}")`);
+      fqParts.push(`news_desk:("${this.mapCategory(category)}")`);
     }
     if (location) {
       fqParts.push(`glocations:("${location}")`);

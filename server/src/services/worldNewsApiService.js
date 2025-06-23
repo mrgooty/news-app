@@ -4,8 +4,8 @@ import BaseNewsService from './baseNewsService.js';
  * Service class for interacting with the World News API.
  */
 class WorldNewsApiService extends BaseNewsService {
-  constructor(config) {
-    super(config);
+  constructor() {
+    super('worldnewsapi');
     this.searchEndpoint = 'search-news';
     this.topNewsEndpoint = 'top-news';
   }
@@ -38,12 +38,12 @@ class WorldNewsApiService extends BaseNewsService {
    */
   async getArticlesByCategory(category, location = null, limit = 20) {
     const params = {
-      'api-key': this.apiKey,
+      
       'source-countries': location,
       'number': limit,
       'sort': 'publish-time',
       'sort-direction': 'DESC',
-      'text': this.getCategoryMapping(category),
+      'text': this.mapCategory(category),
     };
     
     const data = await this.fetch(this.searchEndpoint, params);
@@ -60,14 +60,14 @@ class WorldNewsApiService extends BaseNewsService {
    */
   async searchArticles(keyword, category = null, location = null, limit = 20) {
     const params = {
-      'api-key': this.apiKey,
+      
       'text': keyword,
       'source-countries': location,
       'number': limit,
     };
 
     if (category) {
-      params.category = this.getCategoryMapping(category);
+      params.category = this.mapCategory(category);
     }
     
     const data = await this.fetch(this.searchEndpoint, params);
@@ -83,7 +83,7 @@ class WorldNewsApiService extends BaseNewsService {
    */
   async getTopHeadlines(category = null, location = null, limit = 20) {
     const params = {
-      'api-key': this.apiKey,
+      
       'source-countries': location,
       'number': limit,
     };

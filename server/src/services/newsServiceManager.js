@@ -17,12 +17,12 @@ class NewsServiceManager {
   constructor() {
     // Initialize all news services
     this.services = {
-      newsapi: new NewsAPIService('newsapi'),
-      gnews: new GNewsAPIService('gnews'),
-      guardian: new GuardianAPIService('guardian'),
-      nytimes: new NyTimesApiService('nytimes'),
-      worldnewsapi: new WorldNewsApiService('worldnewsapi'),
-      weatherstack: new WeatherstackApiService('weatherstack'),
+      newsapi: new NewsAPIService(),
+      gnews: new GNewsAPIService(),
+      guardian: new GuardianAPIService(),
+      nytimes: new NyTimesApiService(),
+      worldnewsapi: new WorldNewsApiService(),
+      weatherstack: new WeatherstackApiService(),
     };
     
     // Track available services
@@ -250,6 +250,64 @@ class NewsServiceManager {
   }
 
   /**
+   * Get local news for a specific location with fallback between services
+   * @param {string} location - Location to get local news for
+   * @param {number} limit - Maximum number of articles to return
+   * @param {Array} sources - Optional list of preferred sources
+   * @returns {Promise<Object>} - Object with articles and errors
+   */
+  async getLocalNews(location, limit = 20, sources = null) {
+    const availableServices = this.getAvailableServices(sources);
+    const articles = [];
+    const errors = [];
+    
+    logger(`Fetching local news for location: ${location}, limit: ${limit}`);
+    logger(`Trying services in order: ${availableServices.join(", ")}`);
+    
+    // Try each service in order until we get results or run out of services
+    for (const serviceName of availableServices) {
+      try {
+        const service = this.services[serviceName];
+        logger(`Trying ${serviceName} for local news in ${location}...`);
+        
+        // Check if service has getLocalNews method
+        if (typeof service.getLocalNews === "function") {
+          const serviceArticles = await service.getLocalNews(location, limit);
+          
+          if (serviceArticles && serviceArticles.length > 0) {
+            logger(`Retrieved ${serviceArticles.length} local articles from ${serviceName}`);
+            articles.push(...serviceArticles);
+            
+            // If we have enough articles, stop trying more services
+            if (articles.length >= limit) {
+              break;
+            }
+          } else {
+            logger(`No local articles found from ${serviceName} for location ${location}`);
+          }
+        } else {
+          logger(`${serviceName} does not support local news`);
+        }
+      } catch (error) {
+        logger(`Error fetching local news from ${serviceName}: ${error.message}`);
+        errors.push(createArticleError(serviceName, error.message, error.code || "ERROR"));
+      }
+    }
+    
+    // Deduplicate articles by URL using centralized utility
+    const uniqueArticles = deduplicateArticles(articles);
+    logger(`After deduplication: ${uniqueArticles.length} unique local articles`);
+
+    // Limit to the requested number
+    const limitedArticles = uniqueArticles.slice(0, limit);
+
+    return {
+      articles: limitedArticles,
+      errors: errors.length > 0 ? errors : null,
+    };
+  }
+
+  /**
    * Get available categories from configuration
    * @returns {Array} - List of available categories
    */
@@ -332,4 +390,4 @@ export function getPreferencesDefaults() {
   };
 }
 
-export default newsServiceManager;
+export default newsServiceManager; 

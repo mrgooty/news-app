@@ -2,10 +2,10 @@ import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
-import { fetchNewsByCategory } from '../store/slices/newsDataSlice';
+import { fetchNewsByCategory, resetNews } from '../store/slices/newsDataSlice';
 import NewsGrid from '../components/NewsGrid';
 import NewsDetailModal from '../components/NewsDetailModal';
-import '../styles/news-views.css';
+import '../styles/pages/CategoryPage.css';
 import '../styles/components/status-indicators.css';
 
 function CategoryPage() {
@@ -14,6 +14,12 @@ function CategoryPage() {
   const { location, isLoaded } = useAppSelector((state) => state.userPreferences);
   const { articles, loading, error, hasMore, endCursor } = useAppSelector((state) => state.newsData);
 
+  // 1. Reset news when category or location changes
+  useEffect(() => {
+    dispatch(resetNews());
+  }, [dispatch, categoryId, location]);
+
+  // 2. Fetch news after reset, when isLoaded and categoryId are ready
   useEffect(() => {
     if (isLoaded && categoryId) {
       dispatch(fetchNewsByCategory({ category: categoryId, location }));
@@ -92,7 +98,7 @@ function CategoryPage() {
       <div className="page-header">
         <h1 className="view-title">{categoryName}</h1>
         <div className="header-controls">
-          <button onClick={handleRefresh} disabled={loading} className="refresh-button">
+          <button onClick={handleRefresh} disabled={loading} className="btn btn-secondary">
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>

@@ -70,6 +70,7 @@ const config = {
       },
     },
     weatherstack: {
+      keyName: 'access_key',
       baseUrl: 'http://api.weatherstack.com',
       apiKey: process.env.WEATHER_API_KEY,
       rateLimits: {

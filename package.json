@@ -39,6 +39,7 @@
     "postinstall": "npm run install:all"
   },
   "devDependencies": {
+    "@testing-library/user-event": "^14.6.1",
     "concurrently": "^8.2.2"
   },
   "engines": {
@@ -59,5 +60,8 @@
     "nodejs"
   ],
   "author": "Your Name",
-  "license": "MIT"
-} 
+  "license": "MIT",
+  "dependencies": {
+    "react-icons": "^5.5.0"
+  }
+}

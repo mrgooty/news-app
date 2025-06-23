@@ -101,10 +101,12 @@ function PreferencesPage() {
         )}
       </div>
 
-      <button onClick={handleSaveChanges} className="save-button">
-        Save Changes
-      </button>
-      {savedMessage && <p className="saved-message">{savedMessage}</p>}
+      <div className="save-button-container">
+        <button onClick={handleSaveChanges} className="btn btn-primary">
+            Save Changes
+        </button>
+        {savedMessage && <p className="save-message">{savedMessage}</p>}
+      </div>
     </div>
   );
 }

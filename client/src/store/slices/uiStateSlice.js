@@ -3,6 +3,9 @@ import { createSlice } from '@reduxjs/toolkit';
 const uiStateSlice = createSlice({
   name: 'uiState',
   initialState: {
+    // Add the isDarkMode state
+    isDarkMode: false,
+
     // Modal states
     selectedArticle: null,
     isModalOpen: false,
@@ -29,6 +32,11 @@ const uiStateSlice = createSlice({
     reducedMotion: false,
   },
   reducers: {
+    // Add the toggleDarkMode reducer
+    toggleDarkMode: (state) => {
+      state.isDarkMode = !state.isDarkMode;
+    },
+
     // Modal actions
     openArticleModal: (state, action) => {
       state.selectedArticle = action.payload;
@@ -86,6 +94,9 @@ const uiStateSlice = createSlice({
 });
 
 export const {
+  // Export the new action
+  toggleDarkMode,
+
   openArticleModal,
   closeArticleModal,
   setActiveTab,

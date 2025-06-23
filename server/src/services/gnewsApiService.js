@@ -110,6 +110,57 @@ class GNewsApiService extends BaseNewsService {
   }
 
   /**
+   * Get local news for a specific location
+   * @param {string} location - City name or coordinates
+   * @param {number} limit - Maximum number of articles to return
+   * @returns {Promise<Array>} - Array of normalized articles
+   */
+  async getLocalNews(location, limit = 20) {
+    try {
+      const params = {
+        q: location,
+        max: limit,
+        lang: 'en',
+        sortby: 'publishedAt',
+      };
+      
+      const response = await this.httpClient.get('/search', params);
+      
+      if (!response.articles || !Array.isArray(response.articles)) {
+        console.error('[GNews] Invalid response format for local news:', response);
+        return [];
+      }
+      
+      return response.articles.map(article => this.normalizeArticle(article, 'local'));
+    } catch (error) {
+      console.error('[GNews] Error fetching local news:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Get local news by coordinates
+   * @param {number} lat - Latitude
+   * @param {number} lon - Longitude
+   * @param {number} limit - Maximum number of articles to return
+   * @returns {Promise<Array>} - Array of normalized articles
+   */
+  async getLocalNewsByCoordinates(lat, lon, limit = 20) {
+    const location = `${lat},${lon}`;
+    return this.getLocalNews(location, limit);
+  }
+
+  /**
+   * Get local news by US zip code
+   * @param {string} zipCode - US zip code
+   * @param {number} limit - Maximum number of articles to return
+   * @returns {Promise<Array>} - Array of normalized articles
+   */
+  async getLocalNewsByZipCode(zipCode, limit = 20) {
+    return this.getLocalNews(zipCode, limit);
+  }
+
+  /**
    * Check if the GNews API is available (has valid credentials)
    * @returns {Promise<boolean>} - True if API is available
    */

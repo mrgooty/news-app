@@ -32,23 +32,14 @@ const NewsCard = memo(({ article }) => {
 
   return (
     <div className="news-card" onClick={handleCardClick}>
-      <div className="news-card-header">
-        <div className="news-image-container">
-          <img
-            src={imgSrc}
-            alt={article?.title}
-            className="news-image"
-            loading="lazy"
-            onError={handleImageError}
-          />
-        </div>
-        <div className="news-meta">
-          <span className="news-source">
-            {(typeof article.source === 'object' ? article.source?.name : article.source) || 'Unknown Source'}
-          </span>
-          <span className="news-date">{formatDate(article?.publishedAt)}</span>
-          {article?.category && <span className="news-category">{article.category}</span>}
-        </div>
+      <div className="news-image-container">
+        <img
+          src={imgSrc}
+          alt={article?.title}
+          className="news-image"
+          loading="lazy"
+          onError={handleImageError}
+        />
       </div>
       <div className="news-content">
         <h3 className="news-title">
@@ -62,6 +53,13 @@ const NewsCard = memo(({ article }) => {
             Read More
           </button>
         </div>
+      </div>
+      <div className="news-meta">
+        <span className="news-source">
+          {(typeof article.source === 'object' ? article.source?.name : article.source) || 'Unknown Source'}
+        </span>
+        <span className="news-date">{formatDate(article?.publishedAt)}</span>
+        {article?.category && <span className="news-category">{article.category}</span>}
       </div>
     </div>
   );

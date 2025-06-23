@@ -210,16 +210,136 @@ export const GET_NEWS_BY_CATEGORY = gql`
 `;
 
 export const ANALYZE_ARTICLE = gql`
-  query AnalyzeArticle($title: String!, $content: String!) {
-    analyzeArticle(title: $title, content: $content) {
-      summary
-      sentiment
-      sentimentLabel
-      confidence
-      entities {
-        name
-        type
+  query AnalyzeArticle($url: String!) {
+    analyzeArticle(url: $url) {
+      articleData {
+        title
+        wordCount
+        readingTime\n        summary
+        summary
+      }
+      sentimentAnalysis {
+        sentiment
+        sentimentLabel
         confidence
+        entities {
+          name
+          type
+          confidence
+        }
+      }
+    }
+  }
+`;
+
+// Query to get weather information
+export const GET_WEATHER = gql`
+  query GetWeather($location: String) {
+    getWeather(location: $location) {
+      location
+      temperature
+      feelsLike
+      description
+      icon
+      humidity
+      windSpeed
+      windDirection
+      pressure
+      visibility
+      uvIndex
+      lastUpdated
+    }
+  }
+`;
+
+// Query to get weather by coordinates
+export const GET_WEATHER_BY_COORDINATES = gql`
+  query GetWeatherByCoordinates($lat: Float!, $lon: Float!) {
+    getWeatherByCoordinates(lat: $lat, lon: $lon) {
+      location
+      temperature
+      feelsLike
+      description
+      icon
+      humidity
+      windSpeed
+      windDirection
+      pressure
+      visibility
+      uvIndex
+      lastUpdated
+    }
+  }
+`;
+
+// Query to get weather by US zip code
+export const GET_WEATHER_BY_ZIP_CODE = gql`
+  query GetWeatherByZipCode($zipCode: String!) {
+    getWeatherByZipCode(zipCode: $zipCode) {
+      location
+      temperature
+      feelsLike
+      description
+      icon
+      humidity
+      windSpeed
+      windDirection
+      pressure
+      visibility
+      uvIndex
+      lastUpdated
+    }
+  }
+`;
+
+// Query to get user location
+export const GET_USER_LOCATION = gql`
+  query GetUserLocation {
+    getUserLocation {
+      country
+      countryCode
+      region
+      regionCode
+      city
+      zip
+      lat
+      lon
+      timezone
+      formatted
+    }
+  }
+`;
+
+// Query to get local news
+export const GET_LOCAL_NEWS = gql`
+  query GetLocalNews($location: String, $first: Int) {
+    getLocalNews(location: $location, first: $first) {
+      edges {
+        node {
+          id
+          title
+          description
+          content
+          url
+          imageUrl
+          source
+          publishedAt
+          category
+          cursor
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+      errors {
+        source
+        message
+        code
+        retryable
       }
     }
   }

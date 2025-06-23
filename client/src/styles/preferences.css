@@ -296,3 +296,120 @@
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
 }
+
+.preferences-view {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.preferences-view .view-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.preferences-section {
+  background-color: var(--background-secondary);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-light-soft);
+  border: 1px solid var(--border-color);
+}
+
+.dark .preferences-section {
+  box-shadow: var(--shadow-dark-soft);
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem 0;
+}
+
+/* Category Grid */
+.category-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.category-item {
+  position: relative;
+}
+
+.category-item label {
+  display: block;
+  padding: 1rem;
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition-medium);
+  font-weight: 600;
+}
+
+.category-item input[type="checkbox"] {
+  display: none; /* Hide original checkbox */
+}
+
+.category-item label:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.category-item input[type="checkbox"]:checked + label {
+  background-color: var(--accent-primary);
+  color: #fff;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--background-secondary), 0 0 0 4px var(--accent-primary);
+}
+
+/* Location Select */
+.location-select {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 1rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em;
+  cursor: pointer;
+}
+
+.dark .location-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23d1d5db' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.location-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-secondary), 0 0 0 4px var(--accent-primary);
+}
+
+/* Save Button & Message */
+.save-button-container {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.save-message {
+  text-align: center;
+  margin-top: 1rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+}

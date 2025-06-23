@@ -1,6 +1,7 @@
 // server/src/services/comprehensiveArticleAnalysisService.js
 
 import ArticleScraperService from './articleScraperService.js';
+import summarizationService from '../ai/summarizationService.js';
 import { EnhancedSentimentAnalysisService } from '../ai/sentimentIndex.js';
 
 class ComprehensiveArticleAnalysisService {
@@ -31,7 +32,10 @@ class ComprehensiveArticleAnalysisService {
       const title = lines[0] || 'Unknown Title';
       const content = lines.slice(1).join('\n\n');
       
-      // Step 2: Perform comprehensive sentiment analysis
+      // Step 2: Generate summary
+      const summaryText = await summarizationService.summarize(content);
+
+      // Step 3: Perform comprehensive sentiment analysis
       const sentimentAnalysis = await this.sentimentAnalyzer.analyzeSentiment(
         content,
         {
@@ -41,7 +45,7 @@ class ComprehensiveArticleAnalysisService {
         }
       );
       
-      // Step 3: Combine results
+      // Step 4: Combine results
       const comprehensiveAnalysis = {
         metadata: {
           url: url,
@@ -53,7 +57,8 @@ class ComprehensiveArticleAnalysisService {
           title: title,
           contentLength: content.length,
           wordCount: content.split(/\s+/).length,
-          readingTime: this.calculateReadingTime(content)
+          readingTime: this.calculateReadingTime(content),
+          summary: summaryText
         },
         sentimentAnalysis: sentimentAnalysis,
         summary: this.createComprehensiveSummary({ title, content }, sentimentAnalysis)
