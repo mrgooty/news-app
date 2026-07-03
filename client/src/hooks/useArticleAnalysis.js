@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 
+const API_BASE = import.meta.env?.VITE_API_URL || '';
+
 export const useArticleAnalysis = () => {
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,20 +18,10 @@ export const useArticleAnalysis = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/analyze-sentiment', {
+      const response = await fetch(`${API_BASE}/api/analyze`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          url,
-          options: {
-            includePartyAnalysis: true,
-            includeCountryAnalysis: true,
-            includeDemographicAnalysis: true,
-            includeRecommendations: true
-          }
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
       });
 
       const data = await response.json();
@@ -37,7 +29,7 @@ export const useArticleAnalysis = () => {
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
-      
+
       setAnalysis(data);
     } catch (err) {
       console.error('Error fetching analysis:', err);
@@ -48,4 +40,4 @@ export const useArticleAnalysis = () => {
   }, []);
 
   return { analysis, isLoading, error, analyzeArticle };
-}; 
+};

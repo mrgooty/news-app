@@ -8,12 +8,6 @@ const __dirname = path.dirname(__filename);
 // Correctly load .env file from the 'server' directory
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Log to confirm if keys are loaded (optional, for debugging)
-if (process.env.NEWS_API_KEY) {
-  console.log('NewsAPI Key Loaded Successfully.');
-} else {
-  console.log('NewsAPI Key not found. Check your .env file.');
-}
 
 const config = {
   // Server configuration
@@ -21,18 +15,14 @@ const config = {
     port: process.env.PORT || 4000,
     env: process.env.NODE_ENV || 'development',
   },
+
+  // Database (Neon Postgres)
+  database: {
+    url: process.env.DATABASE_URL || null,
+  },
   
-  // News API configurations
+  // News API configurations (the 3 best free sources + weather)
   newsApis: {
-    newsapi: {
-      baseUrl: 'https://newsapi.org/v2',
-      apiKey: process.env.NEWS_API_KEY,
-      keyName: 'apiKey',
-      rateLimits: {
-        requestsPerDay: 100, // Free tier limit
-        requestsPerSecond: 1,
-      },
-    },
     gnews: {
       baseUrl: 'https://gnews.io/api/v4',
       apiKey: process.env.GNEWS_API_KEY,
@@ -57,15 +47,6 @@ const config = {
       keyName: 'api-key',
       rateLimits: {
         requestsPerDay: 500, // Approximate free tier limit
-        requestsPerSecond: 1,
-      },
-    },
-    worldnewsapi: {
-      baseUrl: 'https://api.worldnewsapi.com',
-      apiKey: process.env.WORLD_NEWS_API_KEY,
-      keyName: 'api-key',
-      rateLimits: {
-        requestsPerDay: 100, // Placeholder
         requestsPerSecond: 1,
       },
     },

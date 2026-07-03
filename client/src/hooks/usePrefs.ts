@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { getPrefs, setPrefs, clearPrefs, Prefs } from '../lib/prefs'
+import { syncPreferences } from '../lib/userSync'
 
 const PREFERENCES_KEY = 'news_app_preferences'
 
@@ -34,6 +34,8 @@ function loadPrefs(): Prefs {
 function savePrefs(prefs: Prefs) {
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    // Mirror to server for cross-device personalization (fire-and-forget)
+    syncPreferences({ categories: prefs.categories, location: prefs.location });
   }
 }
 

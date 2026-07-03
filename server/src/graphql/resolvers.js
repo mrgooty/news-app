@@ -1,9 +1,9 @@
-import { fetchNewsByCategory, searchNewsByKeyword, fetchNewsByCategories } from '../services/newsApiAggregator.js';
-import articleAnalyzerService from '../ai/articleAnalyzerService.js';
 import config from '../config/config.js';
 import log from '../utils/logger.js';
 import newsServiceManager from '../services/newsServiceManager.js';
 import dataLoader from '../utils/dataLoader.js';
+import fastAnalyzer from '../ai/fastAnalyzer.js';
+import personalizationService from '../services/personalizationService.js';
 
 const logger = log('GraphQLResolvers');
 
@@ -91,7 +91,7 @@ const resolvers = {
       }
     },
 
-    topStoriesAcrossCategories: async (_, { categories, location, first = 20, after }) => {
+    topStoriesAcrossCategories: async (_, { categories, location, first = 20, after, userId }) => {
       logger(`Resolving topStoriesAcrossCategories for categories: ${categories.join(', ')}, location: ${location || 'none'}`);
       try {
         const offset = after ? dataLoader.decodeCursor(after).index + 1 : 0;
@@ -108,8 +108,13 @@ const resolvers = {
           .filter(res => res.status === 'fulfilled' && res.value?.articles)
           .flatMap(res => res.value.articles);
         
-        const uniqueArticles = newsServiceManager.deduplicateArticles(allArticles);
-        
+        let uniqueArticles = newsServiceManager.deduplicateArticles(allArticles);
+
+        // Personalized re-ranking when the client identifies the user
+        if (userId) {
+          uniqueArticles = await personalizationService.rankArticles(uniqueArticles, userId);
+        }
+
         return dataLoader.paginateArticles(uniqueArticles, after, first);
       } catch (error) {
         logger.error(`Error in topStoriesAcrossCategories resolver:`, error);
@@ -172,18 +177,20 @@ const resolvers = {
     analyzeArticle: async (_, { content, title }) => {
       logger(`Resolving analyzeArticle for: ${title}`);
       try {
-        const analysis = await articleAnalyzerService.analyzeArticle({ 
+        const analysis = await fastAnalyzer.analyze({
           url: content, // Using content as URL for now
-          title: title
+          title: title,
         });
-        
+
         // Ensure the response matches the schema
         return {
           summary: analysis.summary || '',
-          sentiment: analysis.sentiment || 'neutral',
+          sentiment: analysis.sentiment?.label || 'NEUTRAL',
           sentimentLabel: analysis.sentimentLabel || 'Neutral',
-          confidence: analysis.confidence || 0.5,
-          entities: analysis.entities || []
+          confidence: analysis.confidence ?? 0.5,
+          entities: analysis.entities || [],
+          keywords: analysis.keywords || [],
+          suggestions: analysis.suggestions || [],
         };
       } catch (error) {
         logger.error(`Error in analyzeArticle resolver for ${title}:`, error);
@@ -192,9 +199,48 @@ const resolvers = {
     },
 
     /**
+     * Resolver to get comprehensive analysis of an article by URL.
+     */
+    comprehensiveAnalysis: async (_, { url }) => {
+      logger(`Resolving comprehensiveAnalysis for: ${url}`);
+      try {
+        const analysis = await fastAnalyzer.analyze({ url });
+        return {
+          url,
+          analysis: {
+            summary: analysis.summary || '',
+            sentiment: analysis.sentiment?.label || 'NEUTRAL',
+            sentimentLabel: analysis.sentimentLabel || 'Neutral',
+            confidence: analysis.confidence ?? 0.5,
+            entities: analysis.entities || [],
+            keywords: analysis.keywords || [],
+            suggestions: analysis.suggestions || [],
+          },
+        };
+      } catch (error) {
+        logger.error(`Error in comprehensiveAnalysis resolver:`, error);
+        return { url, analysis: null };
+      }
+    },
+
+    /**
+     * Resolver to get user preferences from Postgres.
+     */
+    getPreferences: async (_, { userId }) => {
+      return personalizationService.getPreferences(userId);
+    },
+
+    /**
      * Resolver to get aggregation metadata for monitoring and analytics.
      */
     aggregationMeta: async () => {
+      const available = newsServiceManager.getAvailableServices();
+      return {
+        sources: available,
+        lastUpdated: new Date().toISOString(),
+        totalArticles: 0,
+        processingTime: 0,
+      };
     },
 
     /**
@@ -388,6 +434,21 @@ const resolvers = {
         logger.error(`Error in updatePreferencesAndRefresh mutation:`, error);
         throw new Error(`Failed to update preferences: ${error.message}`);
       }
+    },
+
+    /**
+     * Persist user preferences to Postgres.
+     */
+    savePreferences: async (_, { userId, categories = [], locations = [], zipCode }) => {
+      logger(`Saving preferences for user ${userId}`);
+      return personalizationService.savePreferences(userId, { categories, locations, zipCode });
+    },
+
+    /**
+     * Record a read event to build the personalization profile.
+     */
+    recordArticleRead: async (_, { userId, url, title, category, source }) => {
+      return personalizationService.recordRead(userId, { url, title, category, source });
     },
   },
 };

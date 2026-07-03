@@ -85,6 +85,15 @@ const typeDefs = `#graphql
     sentimentLabel: String
     confidence: Float
     entities: [Entity]
+    keywords: [String!]
+    suggestions: [Suggestion!]
+  }
+
+  # A follow-up suggestion derived from article analysis
+  type Suggestion {
+    type: String!
+    label: String!
+    query: String!
   }
 
   type ComprehensiveAnalysis {
@@ -116,12 +125,13 @@ const typeDefs = `#graphql
       after: String
     ): ArticleConnection!
     
-    # Get top stories across multiple categories
+    # Get top stories across multiple categories (personalized when userId given)
     topStoriesAcrossCategories(
       categories: [String!]!
       location: String
       first: Int = 20
       after: String
+      userId: String
     ): ArticleConnection!
 
     # Search for news articles by a keyword, with an optional location filter
@@ -136,7 +146,7 @@ const typeDefs = `#graphql
     analyzeArticle(content: String!, title: String): ArticleAnalysis
 
     # Get aggregation metadata
-    aggregationMeta: AggregationMeta!
+    aggregationMeta: AggregationMeta
 
     # Get current weather for a location
     getWeather(location: String): Weather
@@ -147,8 +157,8 @@ const typeDefs = `#graphql
     # Get local news for a location
     getLocalNews(location: String, first: Int = 20): ArticleConnection!
 
-    # Get user preferences
-    getPreferences: UserPreferences
+    # Get user preferences (stored in Postgres)
+    getPreferences(userId: String!): UserPreferences
 
     # Get comprehensive analysis of an article
     comprehensiveAnalysis(url: String!): ComprehensiveAnalysis
@@ -165,7 +175,10 @@ const typeDefs = `#graphql
       location: String
     ): ArticleConnection!
 
-    savePreferences(categories: [String], location: String, zipCode: String): UserPreferences
+    savePreferences(userId: String!, categories: [String!], locations: [String!], zipCode: String): UserPreferences
+
+    # Record that a user opened/read an article (feeds personalization)
+    recordArticleRead(userId: String!, url: String!, title: String, category: String, source: String): Boolean
     # setAIParameters(parameters: AIParametersInput!): AIParameters
   }
 

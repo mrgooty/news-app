@@ -8,24 +8,17 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/setupTests.js',
     coverage: {
-      reporter: ['text','json'],
+      reporter: ['text', 'json'],
       include: [
         'src/components/NewsCard.jsx',
         'src/components/CategoryList.jsx',
-        'src/context/UserPreferencesContext.jsx',
-        'src/hooks/usePrefs.ts'
-      ]
-    }
+        'src/hooks/usePrefs.ts',
+      ],
+    },
   },
   server: {
     watch: {
-      ignored: [
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/dist/**',
-        '**/build/**',
-        'src/services/newsServiceManager.test.js'
-      ],
+      ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],
     },
     proxy: {
       '/graphql': {
@@ -39,5 +32,5 @@ export default defineConfig({
         secure: false,
       },
     },
-  }
+  },
 })

@@ -1,6 +1,7 @@
 import React, { memo, useState, useEffect } from 'react';
 import { useAppDispatch } from '../store/hooks';
 import { openArticleModal } from '../store/slices/uiStateSlice';
+import { recordArticleRead } from '../lib/userSync';
 import '../styles/components/NewsCard.css';
 import placeholderImage from '../assets/placeholder-news.jpg';
 
@@ -15,6 +16,13 @@ const NewsCard = memo(({ article }) => {
 
   const handleCardClick = () => {
     dispatch(openArticleModal(article));
+    // Feed the personalization profile (fire-and-forget)
+    recordArticleRead({
+      url: article?.url,
+      title: article?.title,
+      category: article?.category,
+      source: article?.source,
+    });
   };
 
   const handleImageError = () => {

@@ -94,8 +94,8 @@ export const GET_ARTICLES_BY_CATEGORY = gql`
 
 // Query to fetch top stories across multiple categories
 export const GET_TOP_STORIES_ACROSS_CATEGORIES = gql`
-  query GetTopStoriesAcrossCategories($categories: [String!]!, $location: String, $first: Int, $after: String) {
-    topStoriesAcrossCategories(categories: $categories, location: $location, first: $first, after: $after) {
+  query GetTopStoriesAcrossCategories($categories: [String!]!, $location: String, $first: Int, $after: String, $userId: String) {
+    topStoriesAcrossCategories(categories: $categories, location: $location, first: $first, after: $after, userId: $userId) {
       edges {
         node {
           id

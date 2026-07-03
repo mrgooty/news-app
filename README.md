@@ -1,119 +1,105 @@
 # News App
 
-A full-stack web application for AI-powered news aggregation from multiple sources.
-
-## Project Overview
-
-This application aggregates news from multiple free news APIs, categorizes them, and provides a clean interface for browsing news by category. It uses AI to enhance the news aggregation process.
+AI-powered news aggregation: a React app (deployable to Vercel) backed by a Node GraphQL server, Neon Postgres, and fast local transformer models for article summarization and sentiment analysis.
 
 ## Tech Stack
 
-- **Frontend**: React with Apollo Client for GraphQL
-- **Backend**: Node.js with Express and Apollo Server
-- **API**: GraphQL
-- **AI**: LangChain and LangGraph orchestrate advanced language models (ALMs)
-  for Natural Language Processing (NLP) tasks such as summarizing articles,
-  deduplicating similar content, and ranking results. This provides concise,
-  relevant news across sources.
+- **Frontend**: React 19 + Vite + Apollo Client + Redux Toolkit, hosted on Vercel
+- **Backend**: Node.js + Express + Apollo Server (GraphQL)
+- **Database**: Neon Postgres — persistent analysis cache, user preferences, reading history
+- **AI**: Local ONNX transformer models via `@xenova/transformers` (no API costs) — distilled BART for summarization, DistilBERT for sentiment. Lazy-loaded, chunked divide-and-conquer inference, results cached in Postgres.
+- **News sources** (3, chosen for best free limits + quality): The Guardian, GNews, NY Times — plus Weatherstack for the weather widget.
 
 ## Project Structure
 
 ```
 news-app/
-├── client/                      # React frontend
-│   ├── public/                  # Static assets
-│   └── src/                     # React source code
-│       ├── components/          # UI components
-│       ├── pages/               # Page components
-│       └── graphql/             # GraphQL queries
-├── server/                      # Node.js backend
-│   ├── src/                     # Server source code
-│   │   ├── graphql/             # GraphQL schema and resolvers
-│   │   ├── services/            # News API integrations
-│   │   ├── ai/                  # LangChain and LangGraph orchestration
-│   │   └── config/              # Configuration including API keys
-│   └── .env                     # Environment variables (gitignored)
-└── research/                    # API research findings
+├── vercel.json                 # Vercel config (builds the client)
+├── client/                     # React frontend
+│   └── src/
+│       ├── components/         # UI components
+│       ├── pages/              # Page components
+│       ├── graphql/            # Apollo client + queries
+│       ├── hooks/              # usePrefs, useArticleAnalysis, useWeather
+│       ├── lib/                # userSync (personalization), utils
+│       └── store/              # Redux slices
+├── server/                     # Node.js backend
+│   ├── scripts/                # test-keys.js, init-db.js
+│   └── src/
+│       ├── ai/                 # fastAnalyzer (summaries/sentiment), cacheManager
+│       ├── db/                 # Neon Postgres pool + schema
+│       ├── graphql/            # Schema and resolvers
+│       ├── routes/             # REST endpoints (/api/analyze, ...)
+│       ├── services/           # Guardian/GNews/NYT integrations, personalization, scrapers
+│       └── config/             # Configuration
+└── docs/
+    └── news-api-guide.md       # API key signup links
 ```
 
-## Setup Instructions
+## Setup
 
-### Prerequisites
+Prerequisites: Node.js 18+.
 
-- Node.js (v16 or higher)
-- npm or yarn
-
-### Installation
-
-1. Clone the repository:
-   ```
-   git clone https://github.com/mrgooty/news-app.git
-   cd news-app
+1. Install everything:
+   ```bash
+   npm run install:all
    ```
 
-2. Install dependencies for the server:
-   ```
-   cd server
-   npm install
+2. Configure `server/.env` (copy from `server/.env.template`):
+   - `DATABASE_URL` — your Neon Postgres connection string
+   - `GUARDIAN_API_KEY`, `GNEWS_API_KEY`, `NYT_API_KEY` — signup links in [docs/news-api-guide.md](docs/news-api-guide.md)
+   - `WEATHER_API_KEY` — optional, for the weather widget
+
+   The app runs with any subset of keys; missing sources are skipped automatically.
+
+3. Initialize the database and verify keys:
+   ```bash
+   npm run db:init     # creates tables in Neon, confirms connectivity
+   npm run test:keys   # live-tests every API key
    ```
 
-3. Install dependencies for the client:
-   ```
-   cd ../client
-   npm install
-   ```
-
-4. Set up environment variables:
-   - Copy `server/.env.template` to `server/.env`.
-   - Add your API keys for the news services **and** set `OPENAI_API_KEY` with your ChatGPT key.
-   - (Optional) copy `client/.env.template` to `client/.env` to override the GraphQL URL.
-   - The server integrates [NewsAPI.org](https://newsapi.org/) via `newsApiService`. The older `newsService` file is deprecated and not used.
-
-### Running the Application
-
-1. Start the server:
-   ```
-   cd server
+4. Run locally (server on :4000, client on :5173):
+   ```bash
    npm run dev
    ```
 
-2. Start the client:
-   ```
-   cd client
-   npm run dev
-   ```
+## Deploying
 
-3. Open your browser and navigate to `http://localhost:5173` (or the port shown in your terminal)
-
-
-### Docker Compose
-
-You can run the entire stack with Docker:
+**Frontend → Vercel.** The repo root has a `vercel.json` that builds `client/`:
 
 ```bash
-docker-compose up --build
+npm i -g vercel
+vercel deploy --prod
 ```
 
-The client will be available on `http://localhost:5173` and the GraphQL server on `http://localhost:4000`.
+In the Vercel project settings, set the environment variable `VITE_API_URL` to your hosted backend URL (e.g. `https://your-server.onrender.com`).
+
+**Backend → any Node host** (Render, Railway, Fly.io). It can't run on Vercel serverless — the AI models and the Puppeteer fallback scraper need a persistent process. Set the same env vars as `server/.env` and run `npm start` from `server/`. Set `WARM_MODELS=true` in production so the first analysis request is instant.
 
 ## Features
 
-- Browse news by categories
-- Search for specific news topics
-- AI-enhanced news aggregation from multiple sources
-- Clean and responsive user interface
-- Color-coded category tabs in the preferences flow for a design similar to Apple News
+- Browse and search news by category and location, aggregated across the 3 sources with fallback and deduplication
+- One-click AI article analysis: summary, sentiment with confidence, key topics, and related-search suggestions — computed locally, cached in Neon so each article is only analyzed once
+- Personalized feed ranking from stored preferences + reading history (category, source, and keyword affinity with recency decay)
+- Cross-device preferences via anonymous user IDs stored in Postgres
+- Weather widget with location detection
 
-## Data Flow & Logging
+## How Analysis Works
 
-1. **Client Interaction** – React components trigger GraphQL queries on button clicks using Apollo Client.
-2. **GraphQL Layer** – Resolvers log each request via a shared logger and delegate to `NewsServiceManager`.
-3. **Service Manager** – Coordinates the configured news services, logging which service is used and aggregating results with fallbacks.
-4. **HTTP Client** – Handles API calls with caching and rate limiting while logging every request.
+1. Article text is fetched with plain HTTP + Mozilla Readability (~0.5s); Puppeteer is used only as a fallback for JS-rendered pages.
+2. Text is split into sentence-boundary chunks; all chunks are summarized and sentiment-scored **in parallel**, then reduced (summary-of-summaries, length-weighted sentiment).
+3. Results persist to the `article_analysis` table — repeat requests for the same URL return in milliseconds, for every user, across restarts.
 
-Logs prefixed with component names make it easy to trace each step from the UI to external APIs.
+## Useful Commands
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Run server + client concurrently |
+| `npm run db:init` | Create/verify Neon tables |
+| `npm run test:keys` | Live-test all API keys |
+| `npm test` | Run server + client tests |
+| `npm run build` | Production build of the client |
 
 ## License
 
-ISC
-
+MIT

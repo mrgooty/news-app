@@ -1,11 +1,9 @@
 import config from '../config/config.js';
 import log from '../utils/logger.js';
 import { deduplicateArticles, createArticleError } from '../utils/articleUtils.js';
-import NewsAPIService from './newsApiService.js';
 import GNewsAPIService from './gnewsApiService.js';
 import GuardianAPIService from './guardianApiService.js';
 import NyTimesApiService from './nyTimesApiService.js';
-import WorldNewsApiService from './worldNewsApiService.js';
 import WeatherstackApiService from './weatherstackApiService.js';
 
 const logger = log('NewsServiceManager');
@@ -15,21 +13,20 @@ const logger = log('NewsServiceManager');
  */
 class NewsServiceManager {
   constructor() {
-    // Initialize all news services
+    // The 3 best news sources (best free limits + quality + reliability),
+    // plus weatherstack for the weather widget.
     this.services = {
-      newsapi: new NewsAPIService(),
-      gnews: new GNewsAPIService(),
       guardian: new GuardianAPIService(),
+      gnews: new GNewsAPIService(),
       nytimes: new NyTimesApiService(),
-      worldnewsapi: new WorldNewsApiService(),
       weatherstack: new WeatherstackApiService(),
     };
-    
+
     // Track available services
     this.availableServices = {};
-    
+
     // Default service order for fallback
-    this.serviceOrder = ['newsapi', 'gnews', 'guardian', 'nytimes', 'worldnewsapi', 'weatherstack'];
+    this.serviceOrder = ['guardian', 'gnews', 'nytimes', 'weatherstack'];
     
     // Check service availability on initialization
     this.checkServicesAvailability();

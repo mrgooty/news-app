@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { client as apolloClient } from "../../graphql/client";
 import { GET_ARTICLES_BY_CATEGORY, SEARCH_ARTICLES, GET_TOP_STORIES_ACROSS_CATEGORIES } from "../../graphql/queries";
 import { deduplicateArticles } from "../../lib/utils.js";
+import { getUserId } from "../../lib/userSync";
 
 const initialState = {
   articles: [],
@@ -20,7 +21,7 @@ export const fetchAllNews = createAsyncThunk(
     try {
       const { data } = await apolloClient.query({
         query: GET_TOP_STORIES_ACROSS_CATEGORIES,
-        variables: { categories, location, first: ARTICLE_LIMIT, after },
+        variables: { categories, location, first: ARTICLE_LIMIT, after, userId: getUserId() },
       });
       const articles = data.topStoriesAcrossCategories.edges.map(edge => edge.node);
       const pageInfo = data.topStoriesAcrossCategories.pageInfo;
